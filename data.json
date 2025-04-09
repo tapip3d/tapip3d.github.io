@@ -1,0 +1,254 @@
+{
+    "web_around30fps": {
+        "172620-847860540_tiny": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.01,
+            "trajectoryHistory": 15,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        },
+        "170617-843561820_tiny": {
+            "pointSize": 0.025,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.008,
+            "trajectoryHistory": 15,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        },
+        "85146-587630751_tiny": {
+            "pointSize": 0.035,
+            "pointOpacity": 0.9,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3.5,
+            "trajectoryBallSize": 0.012,
+            "trajectoryHistory": 20,
+            "showCameraFrustum": true,
+            "frustumSize": 0.25
+        },
+        "81031-574269781_tiny": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.01,
+            "trajectoryHistory": 15,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        }
+    },
+    "iphone": {
+        "9": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.01,
+            "trajectoryHistory": 15,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        },
+        "4": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.01,
+            "trajectoryHistory": 15,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        },
+        "7": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.01,
+            "trajectoryHistory": 15,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        },
+        "10": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.01,
+            "trajectoryHistory": 15,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        }
+    },
+    "davis" : {
+        "6": {
+            "pointSize": 0.035,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3.5,
+            "trajectoryBallSize": 0.015,
+            "trajectoryHistory": 20,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        },
+        "22": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.01,
+            "trajectoryHistory": 15,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        },
+        "12": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.01,
+            "trajectoryHistory": 15,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        },
+        "8": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.01,
+            "trajectoryHistory": 15,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        }
+    },
+    "drivetrack": {
+        "178": {
+            "pointSize": 0.04,
+            "pointOpacity": 0.95,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 4,
+            "trajectoryBallSize": 0.02,
+            "trajectoryHistory": 25,
+            "showCameraFrustum": true,
+            "frustumSize": 0.3
+        },
+        "15": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.01,
+            "trajectoryHistory": 15,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        },
+        "1962": {
+            "pointSize": 0.035,
+            "pointOpacity": 0.9,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3.5,
+            "trajectoryBallSize": 0.015,
+            "trajectoryHistory": 20,
+            "showCameraFrustum": true,
+            "frustumSize": 0.25
+        },
+        "2290": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.01,
+            "trajectoryHistory": 15,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        }
+    },
+    "pstudio": {
+        "70": {
+            "pointSize": 0.025,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 2.5,
+            "trajectoryBallSize": 0.008,
+            "trajectoryHistory": 12,
+            "showCameraFrustum": true,
+            "frustumSize": 0.15
+        },
+        "2": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.01,
+            "trajectoryHistory": 15,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        },
+        "12": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.01,
+            "trajectoryHistory": 15,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        },
+        "37": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.01,
+            "trajectoryHistory": 15,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        }
+    },
+    "dexycb": {
+        "6007": {
+            "pointSize": 0.02,
+            "pointOpacity": 0.95,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 2.5,
+            "trajectoryBallSize": 0.005,
+            "trajectoryHistory": 10,
+            "showCameraFrustum": true,
+            "frustumSize": 0.15
+        },
+        "4870": {
+            "pointSize": 0.025,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 3,
+            "trajectoryBallSize": 0.008,
+            "trajectoryHistory": 12,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2
+        },
+        "6138": {
+            "pointSize": 0.015,
+            "pointOpacity": 0.9,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 2,
+            "trajectoryBallSize": 0.004,
+            "trajectoryHistory": 8,
+            "showCameraFrustum": true,
+            "frustumSize": 0.15
+        },
+        "5071": {
+            "pointSize": 0.02,
+            "pointOpacity": 0.95,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 2.5,
+            "trajectoryBallSize": 0.006,
+            "trajectoryHistory": 10,
+            "showCameraFrustum": true,
+            "frustumSize": 0.18
+        }
+    }
+}
