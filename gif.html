@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TAPIP3D - Poster Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* 色彩方案 */
+      --primary: #5E2B97;
+      --primary-dark: #4A2075;
+      --primary-gradient: linear-gradient(90deg, #5E2B97, #8E44AD);
+      --bg-gradient: linear-gradient(160deg, #FFFFFF 0%, #FFFFFF 100%);
+      --accent: #8E44AD;
+      --text: #222222;
+      --text-light: #666666;
+      --bg: #FFFFFF;
+      --bg-light: #FFFFFF;
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --shadow: 0 2px 12px rgba(0,0,0,0.05);
+      --glow: 0 0 20px rgba(94, 43, 151, 0.3);
+      
+      /* 间距 */
+      --space-sm: 8px;
+      --space-md: 16px;
+      --space-lg: 24px;
+      --space-xl: 48px;
+      
+      /* 圆角 */
+      --radius-md: 12px;
+      --radius-lg: 20px;
+      
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      line-height: 1.6;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+      overflow-x: hidden;
+    }
+    
+    .poster-container {
+      width: 100%;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: var(--space-xl) var(--space-md);
+      position: relative;
+    }
+    
+    .poster-header {
+      text-align: center;
+      margin-bottom: var(--space-xl);
+    }
+    
+    .poster-title {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: var(--space-sm);
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-fill-color: transparent;
+      letter-spacing: -1px;
+    }
+    
+    /* 主展示区 */
+    .showcase-grid {
+      display: grid;
+      grid-template-columns: 0.8fr auto 1.2fr;
+      grid-template-rows: repeat(3, 400px);
+      gap: var(--space-lg);
+      margin-bottom: var(--space-xl);
+    }
+    
+    @media (max-width: 1200px) {
+      .showcase-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: 400px auto 400px 400px auto 400px 400px auto 400px;
+        gap: var(--space-md);
+      }
+    }
+    
+    .showcase-item {
+      position: relative;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--card-bg);
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+    }
+    
+    .showcase-item:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow), var(--glow);
+    }
+    
+    .showcase-content {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    .video-container,
+    .pointcloud-iframe-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    
+    .video-container video,
+    .pointcloud-iframe-container iframe {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border: none;
+    }
+    
+    /* Arrow Indicator */
+    .arrow-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 var(--space-md);
+      position: relative;
+    }
+    
+    .arrow-line {
+      position: relative;
+      width: 50px;
+      height: 3px;
+      background: linear-gradient(90deg, #5E2B97, #8E44AD);
+      border-radius: 3px;
+      box-shadow: 0 2px 10px rgba(94, 43, 151, 0.25);
+    }
+    
+    .arrow-line::after {
+      content: '';
+      position: absolute;
+      right: -2px;
+      top: 50%;
+      width: 12px;
+      height: 12px;
+      border-top: 3px solid transparent;
+      border-right: 3px solid transparent;
+      border-bottom: 3px solid #8E44AD;
+      border-left: 3px solid #8E44AD;
+      transform: translateY(-50%) rotate(-135deg);
+    }
+
+    @media (max-width: 1200px) {
+       .arrow-indicator {
+         padding: var(--space-md) 0;
+       }
+       
+       .arrow-line {
+         width: 3px;
+         height: 30px;
+       }
+       
+       .arrow-line::after {
+         right: 50%;
+         top: -2px;
+         transform: translateX(50%) rotate(45deg);
+       }
+    }
+    
+    /* 控制面板 */
+    .controls-container {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: var(--space-md);
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-md);
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 40px;
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      width: max-content;
+      z-index: 25;
+    }
+    
+    .control-btn {
+      background: var(--primary-gradient);
+      border: none;
+      color: white;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+      box-shadow: 0 2px 8px rgba(94, 43, 151, 0.2);
+    }
+    
+    .control-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(94, 43, 151, 0.3);
+    }
+    
+    .control-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+    }
+    
+    .control-label {
+      font-size: 1rem;
+      color: var(--text);
+      font-weight: 500;
+      pointer-events: none;
+    }
+    
+    /* 加载叠层 */
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(94, 43, 151, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    #loading-text {
+      margin-top: 16px;
+      font-size: 18px;
+      color: var(--text);
+      font-weight: 500;
+    }
+    
+    .loading-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+    
+    /* 水印 */
+    .watermark {
+      position: fixed;
+      bottom: var(--space-md);
+      right: var(--space-md);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-light);
+      opacity: 0.7;
+      pointer-events: none;
+      z-index: 20;
+    }
+    
+    /* 效果 */
+    .fade-out {
+      opacity: 0;
+      visibility: hidden;
+    }
+    
+    /* 隐藏UI元素的样式 */
+    .hidden-ui {
+      display: none !important;
+    }
+    
+    /* 设置面板相关样式 */
+    #settings-panel {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      width: 800px;
+      max-width: 90%;
+      pointer-events: auto;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(4px);
+      border: 1px solid #EAEAEA;
+      z-index: 30;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      display: none;
+      opacity: 0;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    #settings-panel.visible {
+      display: block;
+      opacity: 1;
+      animation: slideUp 0.3s ease forwards;
+    }
+    
+    @keyframes slideUp {
+      from {
+        transform: translate(-50%, 20px);
+        opacity: 0;
+      }
+      to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+      }
+    }
+    
+    .settings-group {
+      margin-bottom: 16px;
+    }
+    
+    .settings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    
+    .settings-header h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    
+    .settings-close {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: var(--text-light);
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+    
+    .settings-close:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+    
+    .settings-body {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 20px;
+    }
+    
+    .settings-group h4 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    
+    .slider-container {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 12px;
+    }
+    
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    
+    .slider-label {
+      font-size: 13px;
+      color: var(--text-light);
+    }
+    
+    .slider-value {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--primary);
+    }
+    
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      -webkit-appearance: none;
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 2px;
+      outline: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--primary);
+      cursor: pointer;
+    }
+    
+    .toggle-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    
+    .toggle-wrapper .toggle-label {
+      font-size: 13px;
+      color: var(--text-light);
+    }
+    
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 20px;
+    }
+    
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.1);
+      transition: .4s;
+      border-radius: 20px;
+    }
+    
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background: var(--bg);
+      transition: .4s;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    input:checked + .toggle-slider {
+      background: var(--primary);
+    }
+    
+    input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+    }
+    
+    /* 设置开关按钮 */
+    #settings-toggle {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--primary-gradient);
+      color: white;
+      border: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(94, 43, 151, 0.3);
+      transition: var(--transition);
+      z-index: 20;
+    }
+    
+    #settings-toggle:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(94, 43, 151, 0.4);
+    }
+    
+    #settings-toggle svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+    }
+    
+    /* 设置样式 */
+    .setting {
+      margin-bottom: 12px;
+    }
+    
+    .setting label {
+      font-size: 13px;
+      color: var(--text-light);
+      margin-bottom: 4px;
+      display: inline-block;
+    }
+    
+    .setting-value {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--primary);
+      margin-left: 8px;
+    }
+    
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary);
+      vertical-align: middle;
+    }
+    
+    /* 视频标签样式 */
+    .dataset-tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .dataset-tab {
+      padding: 8px 16px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    
+    .dataset-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+    
+    /* 数据集设置面板容器 */
+    .dataset-settings-container {
+      position: relative;
+    }
+    
+    .dataset-settings {
+      display: none;
+    }
+    
+    .dataset-settings.active {
+      display: block;
+    }
+    
+    /* 按钮样式 */
+    .apply-all-btn {
+      background: var(--primary-gradient);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-left: 10px;
+      transition: var(--transition);
+    }
+    
+    .apply-all-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 2px 8px rgba(94, 43, 151, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="poster-container">
+    <div class="poster-header">
+      <h1 class="poster-title">TAPIP3D</h1>
+    </div>
+  
+    <div class="showcase-grid">
+      <!-- Row 1 -->
+      <!-- 视频1 -->
+      <div class="showcase-item">
+        <div class="showcase-content">
+          <div class="video-container" id="video-container-1">
+            <video id="source-video-1" muted playsinline loop></video>
+          </div>
+        </div>
+      </div>
+      <!-- Arrow 1 -->
+      <div class="arrow-indicator">
+        <div class="arrow-line"></div>
+      </div>
+      <!-- 点云1 (IFrame) -->
+      <div class="showcase-item">
+        <div class="showcase-content">
+          <div class="pointcloud-iframe-container">
+            <iframe id="pointcloud-iframe-1" src="" allow="autoplay"></iframe>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Row 2 -->
+      <!-- 视频2 -->
+      <div class="showcase-item">
+        <div class="showcase-content">
+          <div class="video-container" id="video-container-2">
+            <video id="source-video-2" muted playsinline loop></video>
+          </div>
+        </div>
+      </div>
+      <!-- Arrow 2 -->
+      <div class="arrow-indicator">
+        <div class="arrow-line"></div>
+      </div>
+      <!-- 点云2 (IFrame) -->
+      <div class="showcase-item">
+        <div class="showcase-content">
+          <div class="pointcloud-iframe-container">
+            <iframe id="pointcloud-iframe-2" src="" allow="autoplay"></iframe>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Row 3 (新增) -->
+      <!-- 视频3 -->
+      <div class="showcase-item">
+        <div class="showcase-content">
+          <div class="video-container" id="video-container-3">
+            <video id="source-video-3" muted playsinline loop></video>
+          </div>
+        </div>
+      </div>
+      <!-- Arrow 3 -->
+      <div class="arrow-indicator">
+        <div class="arrow-line"></div>
+      </div>
+      <!-- 点云3 (IFrame) -->
+      <div class="showcase-item">
+        <div class="showcase-content">
+          <div class="pointcloud-iframe-container">
+            <iframe id="pointcloud-iframe-3" src="" allow="autoplay"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 控制面板 -->
+    <div class="controls-container" id="control-panel">
+      <button id="play-pause-btn" class="control-btn">
+        <svg viewBox="0 0 24 24" id="play-icon">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <svg viewBox="0 0 24 24" id="pause-icon" style="display: none;">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+        </svg>
+      </button>
+      <button id="reset-btn" class="control-btn">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+        </svg>
+      </button>
+      <span class="control-label">播放控制</span>
+    </div>
+    
+    <!-- 加载叠层 -->
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+      <div id="loading-text">加载视频和可视化数据...</div>
+    </div>
+    
+    <!-- 水印 -->
+    <div class="watermark">TAPIP3D · Demo</div>
+    
+    <!-- 设置按钮 -->
+    <button id="settings-toggle">
+      <svg viewBox="0 0 24 24">
+        <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.04,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+      </svg>
+    </button>
+    
+    <!-- 设置面板 -->
+    <div id="settings-panel">
+      <div class="settings-header">
+        <h3>可视化设置</h3>
+        <button class="settings-close">&times;</button>
+      </div>
+      
+      <!-- 数据集选项卡 -->
+      <div class="dataset-tabs">
+        <button class="dataset-tab active" data-dataset="1">数据集 1</button>
+        <button class="dataset-tab" data-dataset="2">数据集 2</button>
+        <button class="dataset-tab" data-dataset="3">数据集 3</button>
+        <button class="apply-all-btn" id="apply-to-all">应用到所有</button>
+      </div>
+      
+      <div class="dataset-settings-container">
+        <!-- 数据集1的设置 -->
+        <div class="dataset-settings active" data-dataset="1">
+          <div class="settings-body">
+            <div class="settings-group">
+              <h4>点云设置</h4>
+              <div class="setting">
+                <label for="point-size-1">点大小:</label>
+                <input type="range" id="point-size-1" min="0.01" max="0.1" step="0.005" value="0.03" data-dataset="1" data-setting-type="pointCloud" data-setting="size">
+                <span class="setting-value">0.03</span>
+              </div>
+              <div class="setting">
+                <label for="point-opacity-1">点透明度:</label>
+                <input type="range" id="point-opacity-1" min="0.1" max="1" step="0.05" value="1" data-dataset="1" data-setting-type="pointCloud" data-setting="opacity">
+                <span class="setting-value">1.00</span>
+              </div>
+              <div class="setting">
+                <label for="max-depth-1">最大深度:</label>
+                <input type="range" id="max-depth-1" min="1" max="20" step="0.5" value="10" data-dataset="1" data-setting-type="pointCloud" data-setting="maxDepth">
+                <span class="setting-value">10.00</span>
+              </div>
+            </div>
+            
+            <div class="settings-group">
+              <h4>轨迹设置</h4>
+              <div class="setting">
+                <label for="show-trajectory-1">显示轨迹:</label>
+                <input type="checkbox" id="show-trajectory-1" checked data-dataset="1" data-setting-type="trajectory" data-setting="show">
+              </div>
+              <div class="setting">
+                <label for="trajectory-width-1">轨迹宽度:</label>
+                <input type="range" id="trajectory-width-1" min="1" max="10" step="0.5" value="3" data-dataset="1" data-setting-type="trajectory" data-setting="width">
+                <span class="setting-value">3.00</span>
+              </div>
+              <div class="setting">
+                <label for="marker-size-1">标记大小:</label>
+                <input type="range" id="marker-size-1" min="0.001" max="0.03" step="0.001" value="0.01" data-dataset="1" data-setting-type="trajectory" data-setting="markerSize">
+                <span class="setting-value">0.01</span>
+              </div>
+              <div class="setting">
+                <label for="trajectory-history-1">历史长度:</label>
+                <input type="range" id="trajectory-history-1" min="5" max="30" step="1" value="15" data-dataset="1" data-setting-type="trajectory" data-setting="history">
+                <span class="setting-value">15</span>
+              </div>
+            </div>
+            
+            <div class="settings-group">
+              <h4>关键帧设置</h4>
+              <div class="setting">
+                <label for="show-keyframes-1">显示关键帧:</label>
+                <input type="checkbox" id="show-keyframes-1" checked data-dataset="1" data-setting-type="keyframes" data-setting="show">
+              </div>
+              <div class="setting">
+                <label for="keyframe-interval-1">关键帧间隔:</label>
+                <input type="range" id="keyframe-interval-1" min="5" max="60" step="5" value="20" data-dataset="1" data-setting-type="keyframes" data-setting="interval">
+                <span class="setting-value">20</span>
+              </div>
+              <div class="setting">
+                <label for="keyframe-opacity-1">关键帧透明度:</label>
+                <input type="range" id="keyframe-opacity-1" min="0.1" max="1" step="0.05" value="0.5" data-dataset="1" data-setting-type="keyframes" data-setting="opacity">
+                <span class="setting-value">0.50</span>
+              </div>
+            </div>
+            
+            <div class="settings-group">
+              <h4>相机设置</h4>
+              <div class="setting">
+                <label for="show-camera-1">显示相机框:</label>
+                <input type="checkbox" id="show-camera-1" checked data-dataset="1" data-setting-type="camera" data-setting="show">
+              </div>
+              <div class="setting">
+                <label for="camera-size-1">相机框大小:</label>
+                <input type="range" id="camera-size-1" min="0.1" max="0.5" step="0.05" value="0.2" data-dataset="1" data-setting-type="camera" data-setting="size">
+                <span class="setting-value">0.20</span>
+              </div>
+            </div>
+            
+            <div class="settings-group">
+              <h4>播放设置</h4>
+              <div class="setting">
+                <label for="playback-fps-1">帧率(FPS):</label>
+                <input type="range" id="playback-fps-1" min="1" max="60" step="1" value="30" data-dataset="1" data-setting-type="playback" data-setting="fps">
+                <span class="setting-value">30</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 数据集2的设置 -->
+        <div class="dataset-settings" data-dataset="2">
+          <div class="settings-body">
+            <div class="settings-group">
+              <h4>点云设置</h4>
+              <div class="setting">
+                <label for="point-size-2">点大小:</label>
+                <input type="range" id="point-size-2" min="0.01" max="0.1" step="0.005" value="0.03" data-dataset="2" data-setting-type="pointCloud" data-setting="size">
+                <span class="setting-value">0.03</span>
+              </div>
+              <div class="setting">
+                <label for="point-opacity-2">点透明度:</label>
+                <input type="range" id="point-opacity-2" min="0.1" max="1" step="0.05" value="1" data-dataset="2" data-setting-type="pointCloud" data-setting="opacity">
+                <span class="setting-value">1.00</span>
+              </div>
+              <div class="setting">
+                <label for="max-depth-2">最大深度:</label>
+                <input type="range" id="max-depth-2" min="1" max="20" step="0.5" value="10" data-dataset="2" data-setting-type="pointCloud" data-setting="maxDepth">
+                <span class="setting-value">10.00</span>
+              </div>
+            </div>
+            
+            <div class="settings-group">
+              <h4>轨迹设置</h4>
+              <div class="setting">
+                <label for="show-trajectory-2">显示轨迹:</label>
+                <input type="checkbox" id="show-trajectory-2" checked data-dataset="2" data-setting-type="trajectory" data-setting="show">
+              </div>
+              <div class="setting">
+                <label for="trajectory-width-2">轨迹宽度:</label>
+                <input type="range" id="trajectory-width-2" min="1" max="10" step="0.5" value="3" data-dataset="2" data-setting-type="trajectory" data-setting="width">
+                <span class="setting-value">3.00</span>
+              </div>
+              <div class="setting">
+                <label for="marker-size-2">标记大小:</label>
+                <input type="range" id="marker-size-2" min="0.001" max="0.03" step="0.001" value="0.01" data-dataset="2" data-setting-type="trajectory" data-setting="markerSize">
+                <span class="setting-value">0.01</span>
+              </div>
+              <div class="setting">
+                <label for="trajectory-history-2">历史长度:</label>
+                <input type="range" id="trajectory-history-2" min="5" max="30" step="1" value="15" data-dataset="2" data-setting-type="trajectory" data-setting="history">
+                <span class="setting-value">15</span>
+              </div>
+            </div>
+            
+            <div class="settings-group">
+              <h4>关键帧设置</h4>
+              <div class="setting">
+                <label for="show-keyframes-2">显示关键帧:</label>
+                <input type="checkbox" id="show-keyframes-2" checked data-dataset="2" data-setting-type="keyframes" data-setting="show">
+              </div>
+              <div class="setting">
+                <label for="keyframe-interval-2">关键帧间隔:</label>
+                <input type="range" id="keyframe-interval-2" min="5" max="60" step="5" value="20" data-dataset="2" data-setting-type="keyframes" data-setting="interval">
+                <span class="setting-value">20</span>
+              </div>
+              <div class="setting">
+                <label for="keyframe-opacity-2">关键帧透明度:</label>
+                <input type="range" id="keyframe-opacity-2" min="0.1" max="1" step="0.05" value="0.5" data-dataset="2" data-setting-type="keyframes" data-setting="opacity">
+                <span class="setting-value">0.50</span>
+              </div>
+            </div>
+            
+            <div class="settings-group">
+              <h4>相机设置</h4>
+              <div class="setting">
+                <label for="show-camera-2">显示相机框:</label>
+                <input type="checkbox" id="show-camera-2" checked data-dataset="2" data-setting-type="camera" data-setting="show">
+              </div>
+              <div class="setting">
+                <label for="camera-size-2">相机框大小:</label>
+                <input type="range" id="camera-size-2" min="0.1" max="0.5" step="0.05" value="0.2" data-dataset="2" data-setting-type="camera" data-setting="size">
+                <span class="setting-value">0.20</span>
+              </div>
+            </div>
+            
+            <div class="settings-group">
+              <h4>播放设置</h4>
+              <div class="setting">
+                <label for="playback-fps-2">帧率(FPS):</label>
+                <input type="range" id="playback-fps-2" min="1" max="60" step="1" value="30" data-dataset="2" data-setting-type="playback" data-setting="fps">
+                <span class="setting-value">30</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 数据集3的设置 -->
+        <div class="dataset-settings" data-dataset="3">
+          <div class="settings-body">
+            <div class="settings-group">
+              <h4>点云设置</h4>
+              <div class="setting">
+                <label for="point-size-3">点大小:</label>
+                <input type="range" id="point-size-3" min="0.01" max="0.1" step="0.005" value="0.03" data-dataset="3" data-setting-type="pointCloud" data-setting="size">
+                <span class="setting-value">0.03</span>
+              </div>
+              <div class="setting">
+                <label for="point-opacity-3">点透明度:</label>
+                <input type="range" id="point-opacity-3" min="0.1" max="1" step="0.05" value="1" data-dataset="3" data-setting-type="pointCloud" data-setting="opacity">
+                <span class="setting-value">1.00</span>
+              </div>
+              <div class="setting">
+                <label for="max-depth-3">最大深度:</label>
+                <input type="range" id="max-depth-3" min="1" max="20" step="0.5" value="10" data-dataset="3" data-setting-type="pointCloud" data-setting="maxDepth">
+                <span class="setting-value">10.00</span>
+              </div>
+            </div>
+            
+            <div class="settings-group">
+              <h4>轨迹设置</h4>
+              <div class="setting">
+                <label for="show-trajectory-3">显示轨迹:</label>
+                <input type="checkbox" id="show-trajectory-3" checked data-dataset="3" data-setting-type="trajectory" data-setting="show">
+              </div>
+              <div class="setting">
+                <label for="trajectory-width-3">轨迹宽度:</label>
+                <input type="range" id="trajectory-width-3" min="1" max="10" step="0.5" value="3" data-dataset="3" data-setting-type="trajectory" data-setting="width">
+                <span class="setting-value">3.00</span>
+              </div>
+              <div class="setting">
+                <label for="marker-size-3">标记大小:</label>
+                <input type="range" id="marker-size-3" min="0.001" max="0.03" step="0.001" value="0.01" data-dataset="3" data-setting-type="trajectory" data-setting="markerSize">
+                <span class="setting-value">0.01</span>
+              </div>
+              <div class="setting">
+                <label for="trajectory-history-3">历史长度:</label>
+                <input type="range" id="trajectory-history-3" min="5" max="30" step="1" value="15" data-dataset="3" data-setting-type="trajectory" data-setting="history">
+                <span class="setting-value">15</span>
+              </div>
+            </div>
+            
+            <div class="settings-group">
+              <h4>关键帧设置</h4>
+              <div class="setting">
+                <label for="show-keyframes-3">显示关键帧:</label>
+                <input type="checkbox" id="show-keyframes-3" checked data-dataset="3" data-setting-type="keyframes" data-setting="show">
+              </div>
+              <div class="setting">
+                <label for="keyframe-interval-3">关键帧间隔:</label>
+                <input type="range" id="keyframe-interval-3" min="5" max="60" step="5" value="20" data-dataset="3" data-setting-type="keyframes" data-setting="interval">
+                <span class="setting-value">20</span>
+              </div>
+              <div class="setting">
+                <label for="keyframe-opacity-3">关键帧透明度:</label>
+                <input type="range" id="keyframe-opacity-3" min="0.1" max="1" step="0.05" value="0.5" data-dataset="3" data-setting-type="keyframes" data-setting="opacity">
+                <span class="setting-value">0.50</span>
+              </div>
+            </div>
+            
+            <div class="settings-group">
+              <h4>相机设置</h4>
+              <div class="setting">
+                <label for="show-camera-3">显示相机框:</label>
+                <input type="checkbox" id="show-camera-3" checked data-dataset="3" data-setting-type="camera" data-setting="show">
+              </div>
+              <div class="setting">
+                <label for="camera-size-3">相机框大小:</label>
+                <input type="range" id="camera-size-3" min="0.1" max="0.5" step="0.05" value="0.2" data-dataset="3" data-setting-type="camera" data-setting="size">
+                <span class="setting-value">0.20</span>
+              </div>
+            </div>
+            
+            <div class="settings-group">
+              <h4>播放设置</h4>
+              <div class="setting">
+                <label for="playback-fps-3">帧率(FPS):</label>
+                <input type="range" id="playback-fps-3" min="1" max="60" step="1" value="30" data-dataset="3" data-setting-type="playback" data-setting="fps">
+                <span class="setting-value">30</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    class VideoVizManager {
+      constructor() {
+        // DOM 元素
+        this.elements = {
+          videos: [
+            document.getElementById('source-video-1'),
+            document.getElementById('source-video-2'),
+            document.getElementById('source-video-3')
+          ],
+          iframes: [
+            document.getElementById('pointcloud-iframe-1'),
+            document.getElementById('pointcloud-iframe-2'),
+            document.getElementById('pointcloud-iframe-3')
+          ],
+          playPauseBtn: document.getElementById('play-pause-btn'),
+          resetBtn: document.getElementById('reset-btn'),
+          playIcon: document.getElementById('play-icon'),
+          pauseIcon: document.getElementById('pause-icon'),
+          loadingOverlay: document.getElementById('loading-overlay'),
+          loadingText: document.getElementById('loading-text'),
+          // 添加设置面板元素
+          settingsPanel: document.getElementById('settings-panel'),
+          settingsToggle: document.getElementById('settings-toggle'),
+          settingsClose: document.querySelector('.settings-close'),
+          applyAllBtn: document.getElementById('apply-to-all'),
+          datasetTabs: document.querySelectorAll('.dataset-tab')
+        };
+
+        // 播放和同步状态
+        this.state = {
+          isPlaying: false,
+          videosLoaded: [false, false, false],
+          iframesLoaded: [false, false, false],
+          videoTimeUpdateLock: false,
+          lastSyncTime: 0,
+          syncInterval: 16.7, // ~60fps for sync checks
+          activeDatasetTab: 1, // 当前激活的数据集标签
+          // 添加每个数据集的设置数据
+          settings: [
+            { // 数据集 1 设置
+              pointCloud: { size: 0.03, opacity: 1.0, maxDepth: 10.0 },
+              trajectory: { show: true, width: 3, markerSize: 0.01 },
+              keyframes: { show: true, interval: 20, opacity: 0.5 },
+              camera: { show: true, size: 0.2 },
+              playback: { fps: 30 }
+            },
+            { // 数据集 2 设置
+              pointCloud: { size: 0.03, opacity: 1.0, maxDepth: 10.0 },
+              trajectory: { show: true, width: 3, markerSize: 0.01 },
+              keyframes: { show: true, interval: 20, opacity: 0.5 },
+              camera: { show: true, size: 0.2 },
+              playback: { fps: 30 }
+            },
+            { // 数据集 3 设置
+              pointCloud: { size: 0.03, opacity: 1.0, maxDepth: 10.0 },
+              trajectory: { show: true, width: 3, markerSize: 0.01 },
+              keyframes: { show: true, interval: 20, opacity: 0.5 },
+              camera: { show: true, size: 0.2 },
+              playback: { fps: 30 }
+            }
+          ]
+        };
+
+        // 数据路径配置
+        this.config = {
+          videoPaths: ['', '', ''],
+          dataPaths: ['', '', '']
+        };
+
+        // 初始化
+        this.init();
+      }
+
+      init() {
+        // 从URL获取参数
+        this.parseUrlParams();
+        
+        // 设置视频和iframe源
+        this.setupSources();
+        
+        // 初始化事件监听器
+        this.setupEventListeners();
+        
+        // 初始化设置面板
+        this.initSettingsPanel();
+      }
+
+      parseUrlParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // 获取数据路径
+        this.config.dataPaths[0] = urlParams.get('data1') || 'demos/web_around30fps/172620-847860540_tiny.bin';
+        this.config.dataPaths[1] = urlParams.get('data2') || 'demos/davis/6.bin';
+        this.config.dataPaths[2] = urlParams.get('data3') || 'demos/davis/27.bin';
+        
+        // 获取视频路径
+        this.config.videoPaths[0] = urlParams.get('video1') || 'demos/web_around30fps/172620-847860540_tiny.mp4';
+        this.config.videoPaths[1] = urlParams.get('video2') || 'demos/davis/6.mp4';
+        this.config.videoPaths[2] = urlParams.get('video3') || 'demos/davis/27.mp4';
+
+        console.log('使用数据路径:', this.config.dataPaths);
+        console.log('使用视频路径:', this.config.videoPaths);
+      }
+
+      setupSources() {
+        // 设置视频源
+        this.elements.videos.forEach((video, index) => {
+          video.src = this.config.videoPaths[index];
+          video.load();
+        });
+        
+        // 设置iframe源
+        this.elements.iframes.forEach((iframe, index) => {
+          iframe.src = `viz_embed.html?data=${encodeURIComponent(this.config.dataPaths[index])}&hideUI=true&videoIndex=${index + 1}`;
+        });
+      }
+
+      setupEventListeners() {
+        // 视频事件
+        this.elements.videos.forEach((video, index) => {
+          // 加载事件
+          video.addEventListener('loadeddata', () => this.handleVideoLoaded(index));
+          
+          // 时间更新事件
+          video.addEventListener('timeupdate', () => this.handleVideoTimeUpdate(index));
+          
+          // 结束事件
+          video.addEventListener('ended', () => this.handleVideoEnded(index));
+        });
+
+        // iframe加载消息
+        window.addEventListener('message', (event) => {
+          if (event.data && event.data.type === 'viz_loaded') {
+            // 确定是哪个iframe发送的消息
+            const iframe1 = this.elements.iframes[0].contentWindow;
+            const iframe2 = this.elements.iframes[1].contentWindow;
+            const iframe3 = this.elements.iframes[2].contentWindow;
+            
+            if (event.source === iframe1) {
+              this.state.iframesLoaded[0] = true;
+              console.log('iframe 1 已加载完成');
+            } else if (event.source === iframe2) {
+              this.state.iframesLoaded[1] = true;
+              console.log('iframe 2 已加载完成');
+            } else if (event.source === iframe3) {
+              this.state.iframesLoaded[2] = true;
+              console.log('iframe 3 已加载完成');
+            }
+            
+            this.checkAllLoaded();
+          }
+        });
+
+        // 控制按钮事件
+        this.elements.playPauseBtn.addEventListener('click', () => this.togglePlayback());
+        this.elements.resetBtn.addEventListener('click', () => this.resetAll());
+        
+        // 设置面板事件
+        this.elements.settingsToggle.addEventListener('click', () => this.toggleSettingsPanel());
+        this.elements.settingsClose.addEventListener('click', () => this.closeSettingsPanel());
+        
+        // 数据集标签切换
+        this.elements.datasetTabs.forEach(tab => {
+          tab.addEventListener('click', () => this.changeDatasetTab(tab));
+        });
+        
+        // 应用到所有按钮
+        this.elements.applyAllBtn.addEventListener('click', () => this.applySettingsToAll());
+      }
+
+      handleVideoLoaded(index) {
+        console.log(`视频 ${index + 1} 已加载`);
+        this.state.videosLoaded[index] = true;
+        this.checkAllLoaded();
+      }
+
+      handleVideoTimeUpdate(index) {
+        // 防止递归循环的锁
+        if (this.state.videoTimeUpdateLock) return;
+        
+        const video = this.elements.videos[index];
+        
+        // 限制同步频率，避免过多的消息
+        const now = performance.now();
+        if (now - this.state.lastSyncTime < this.state.syncInterval) return;
+        this.state.lastSyncTime = now;
+        
+        // 在这里不再需要向 iframe 发送 seek 消息，viz_embed.html 会自行轮询视频状态
+      }
+
+      handleVideoEnded(index) {
+        // 由于设置了loop属性，视频会自动循环播放
+        // 不再需要向 iframe 发送任何消息，viz_embed.html 会自行轮询视频状态
+        if (this.state.isPlaying) {
+          console.log(`视频 ${index + 1} 已循环播放`);
+        }
+      }
+
+      togglePlayback() {
+        if (this.state.isPlaying) {
+          this.pauseAll();
+        } else {
+          this.playAll();
+        }
+      }
+
+      playAll() {
+        // 播放所有视频
+        this.elements.videos.forEach(video => {
+          video.play().catch(e => console.error('视频播放失败:', e));
+        });
+        
+        // 向所有iframe发送播放消息
+        this.elements.iframes.forEach(iframe => {
+          if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({ command: 'play' }, '*');
+          }
+        });
+        
+        // 更新状态
+        this.state.isPlaying = true;
+        this.updatePlayPauseIcon();
+      }
+
+      pauseAll() {
+        // 暂停所有视频
+        this.elements.videos.forEach(video => {
+          video.pause();
+        });
+        
+        // 向所有iframe发送暂停消息
+        this.elements.iframes.forEach(iframe => {
+          if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({ command: 'pause' }, '*');
+          }
+        });
+        
+        // 更新状态
+        this.state.isPlaying = false;
+        this.updatePlayPauseIcon();
+      }
+
+      resetAll() {
+        // 暂停所有
+        const wasPlaying = this.state.isPlaying;
+        this.pauseAll();
+        
+        // 视频重置到开始
+        this.state.videoTimeUpdateLock = true;
+        this.elements.videos.forEach(video => {
+          video.currentTime = 0;
+        });
+        setTimeout(() => {
+          this.state.videoTimeUpdateLock = false;
+        }, 100);
+        
+        // 不再需要向 iframe 发送 reset 和 seek 消息，viz_embed.html 会自行轮询视频状态
+        
+        // 如果之前在播放，继续播放
+        if (wasPlaying) {
+          setTimeout(() => this.playAll(), 200);
+        }
+      }
+
+      updatePlayPauseIcon() {
+        if (this.state.isPlaying) {
+          this.elements.playIcon.style.display = 'none';
+          this.elements.pauseIcon.style.display = 'block';
+        } else {
+          this.elements.playIcon.style.display = 'block';
+          this.elements.pauseIcon.style.display = 'none';
+        }
+      }
+
+      checkAllLoaded() {
+        const allVideosLoaded = this.state.videosLoaded.every(loaded => loaded);
+        const allIframesLoaded = this.state.iframesLoaded.every(loaded => loaded);
+        
+        console.log('加载状态:', {videos: this.state.videosLoaded, iframes: this.state.iframesLoaded});
+        
+        if (allVideosLoaded && allIframesLoaded) {
+          console.log('所有组件加载完成');
+          
+          setTimeout(() => {
+            this.elements.loadingOverlay.classList.add('fade-out');
+            
+            // 发送默认设置到iframe
+            this.sendDefaultSettings();
+            
+            // 确保重置所有同步状态
+            this.resetAll();
+          }, 500);
+        }
+      }
+
+      sendDefaultSettings() {
+        // 向所有iframe发送初始设置
+        this.elements.iframes.forEach((iframe, index) => {
+          if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({
+              command: 'updateSettings',
+              settings: this.state.settings[index]
+            }, '*');
+          }
+        });
+      }
+
+      // 初始化设置面板
+      initSettingsPanel() {
+        // 绑定所有设置控件的事件
+        document.querySelectorAll('input[type="range"]').forEach(slider => {
+          slider.addEventListener('input', e => this.handleSliderChange(e));
+        });
+        
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+          checkbox.addEventListener('change', e => this.handleCheckboxChange(e));
+        });
+        
+        // 初始化轨迹历史长度滑块
+        const trajectoryHistorySliders = document.querySelectorAll('input[data-setting="history"]');
+        trajectoryHistorySliders.forEach(slider => {
+          slider.addEventListener('input', e => this.handleSliderChange(e));
+        });
+        
+        // 初始化关键帧透明度滑块
+        const keyframeOpacitySliders = document.querySelectorAll('input[data-setting="opacity"][data-setting-type="keyframes"]');
+        keyframeOpacitySliders.forEach(slider => {
+          slider.addEventListener('input', e => this.handleSliderChange(e));
+        });
+      }
+      
+      // 处理滑块值变化
+      handleSliderChange(e) {
+        console.debug('handleSliderChange被调用', e.target.id, e.target.value);
+        const slider = e.target;
+        const datasetNumber = parseInt(slider.dataset.dataset);
+        const settingType = slider.dataset.settingType;
+        const settingName = slider.dataset.setting;
+        let value = parseFloat(slider.value);
+        
+        // 处理特殊情况，如轨迹历史长度应该是整数
+        if (settingType === 'trajectory' && settingName === 'history') {
+          value = Math.round(value);
+        }
+        
+        // 更新设置
+        if (!this.state.settings[datasetNumber - 1][settingType]) {
+          this.state.settings[datasetNumber - 1][settingType] = {};
+        }
+        this.state.settings[datasetNumber - 1][settingType][settingName] = value;
+        
+        // 更新显示的值
+        const valueDisplay = slider.nextElementSibling;
+        if (valueDisplay) {
+          // 对于轨迹历史长度，保留整数
+          if (settingType === 'trajectory' && settingName === 'history') {
+            valueDisplay.textContent = Math.round(value);
+          } else {
+            valueDisplay.textContent = parseFloat(value).toFixed(2).replace(/\.?0+$/, '');
+          }
+        }
+        
+        // 发送设置到iframe
+        this.sendSettingsToIframe(datasetNumber - 1);
+      }
+      
+      // 处理复选框变化
+      handleCheckboxChange(e) {
+        console.debug('handleCheckboxChange被调用', e.target.id, e.target.checked);
+        const checkbox = e.target;
+        const checked = checkbox.checked;
+        
+        // 获取设置信息
+        const datasetIndex = parseInt(checkbox.dataset.dataset) - 1;
+        const settingType = checkbox.dataset.settingType;
+        const settingName = checkbox.dataset.setting;
+        
+        // 更新设置数据
+        if (this.state.settings[datasetIndex] && 
+            this.state.settings[datasetIndex][settingType]) {
+          this.state.settings[datasetIndex][settingType][settingName] = checked;
+          
+          // 发送设置到对应的iframe
+          this.sendSettingsToIframe(datasetIndex);
+        }
+      }
+      
+      // 发送设置到指定iframe
+      sendSettingsToIframe(datasetIndex) {
+        console.debug('sendSettingsToIframe被调用', datasetIndex, this.state.settings[datasetIndex]);
+        if (!this.elements.iframes[datasetIndex]) {
+          console.warn(`Iframe ${datasetIndex} not available yet`);
+          return;
+        }
+        
+        const settings = this.state.settings[datasetIndex];
+        const message = {
+          command: 'updateSettings',
+          settings: {
+            pointCloud: settings.pointCloud,
+            trajectory: settings.trajectory,
+            keyframes: settings.keyframes,
+            camera: settings.camera,
+            playback: settings.playback
+          }
+        };
+        
+        console.log(`向iframe ${datasetIndex}发送设置:`, message);
+        this.elements.iframes[datasetIndex].contentWindow.postMessage(message, '*');
+      }
+      
+      // 切换设置面板显示/隐藏
+      toggleSettingsPanel() {
+        const panel = this.elements.settingsPanel;
+        if (panel.classList.contains('visible')) {
+          this.closeSettingsPanel();
+        } else {
+          panel.classList.add('visible');
+        }
+      }
+      
+      // 关闭设置面板
+      closeSettingsPanel() {
+        this.elements.settingsPanel.classList.remove('visible');
+      }
+      
+      // 切换数据集标签
+      changeDatasetTab(clickedTab) {
+        // 获取数据集编号
+        const datasetNumber = parseInt(clickedTab.dataset.dataset);
+        
+        // 更新激活状态
+        this.elements.datasetTabs.forEach(tab => {
+          tab.classList.remove('active');
+        });
+        clickedTab.classList.add('active');
+        
+        // 更新当前活跃的数据集标签
+        this.state.activeDatasetTab = datasetNumber;
+        
+        // 更新显示的设置面板
+        document.querySelectorAll('.dataset-settings').forEach(panel => {
+          panel.classList.remove('active');
+        });
+        document.querySelector(`.dataset-settings[data-dataset="${datasetNumber}"]`).classList.add('active');
+      }
+      
+      // 将当前活跃数据集的设置应用到所有数据集
+      applySettingsToAll() {
+        const activeIndex = this.state.activeDatasetTab - 1;
+        const activeSettings = this.state.settings[activeIndex];
+        
+        // 复制设置到所有数据集
+        this.state.settings.forEach((settings, index) => {
+          if (index !== activeIndex) {
+            // 深拷贝设置
+            this.state.settings[index] = JSON.parse(JSON.stringify(activeSettings));
+            
+            // 确保轨迹历史长度和关键帧透明度被正确复制
+            if (activeSettings.trajectory && activeSettings.trajectory.history !== undefined) {
+              this.state.settings[index].trajectory.history = activeSettings.trajectory.history;
+            }
+            
+            if (activeSettings.keyframes && activeSettings.keyframes.opacity !== undefined) {
+              this.state.settings[index].keyframes.opacity = activeSettings.keyframes.opacity;
+            }
+            
+            // 发送设置到iframe
+            this.sendSettingsToIframe(index);
+            
+            // 更新UI控件显示
+            this.updateUIFromSettings(index + 1);
+          }
+        });
+        
+        console.log('已将设置应用到所有数据集');
+      }
+      
+      // 更新设置UI控件的显示
+      updateUIFromSettings(datasetNumber) {
+        const datasetIndex = datasetNumber - 1;
+        const settings = this.state.settings[datasetIndex];
+        
+        // 更新滑块
+        document.querySelectorAll(`input[type="range"][data-dataset="${datasetNumber}"]`).forEach(slider => {
+          const settingType = slider.dataset.settingType;
+          const settingName = slider.dataset.setting;
+          
+          if (settings[settingType] && settings[settingType][settingName] !== undefined) {
+            slider.value = settings[settingType][settingName];
+            
+            // 更新显示的值
+            const valueDisplay = slider.nextElementSibling;
+            if (valueDisplay) {
+              const value = settings[settingType][settingName];
+              let formattedValue;
+              
+              // 对于轨迹历史长度，保留整数
+              if (settingType === 'trajectory' && settingName === 'history') {
+                formattedValue = Math.round(value);
+              } else {
+                formattedValue = parseFloat(value).toFixed(2).replace(/\.?0+$/, '');
+              }
+              
+              valueDisplay.textContent = formattedValue;
+            }
+          }
+        });
+        
+        // 更新复选框
+        document.querySelectorAll(`input[type="checkbox"][data-dataset="${datasetNumber}"]`).forEach(checkbox => {
+          const settingType = checkbox.dataset.settingType;
+          const settingName = checkbox.dataset.setting;
+          
+          if (settings[settingType] && settings[settingType][settingName] !== undefined) {
+            checkbox.checked = settings[settingType][settingName];
+          }
+        });
+      }
+
+      getDefaultSettings() {
+        return {
+          pointCloud: {
+            size: 0.03,
+            opacity: 1.0,
+            maxDepth: 10.0
+          },
+          trajectory: {
+            show: true,
+            width: 3,
+            markerSize: 0.01,
+            history: 15  // 确保轨迹历史长度有默认值
+          },
+          keyframes: {
+            show: true,
+            interval: 20,
+            opacity: 0.5  // 确保关键帧透明度有默认值
+          },
+          camera: {
+            show: true,
+            size: 0.2
+          },
+          playback: {
+            fps: 30
+          }
+        };
+      }
+    }
+    
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      const manager = new VideoVizManager();
+    });
+  </script>
+</body>
+</html> 

@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Point Cloud Visualizer (Embed)</title>
+  <style>
+    :root {
+      /* Color System */
+      --primary: #5E2B97;
+      --primary-light: #F2EAFB;
+      --secondary: #8E44AD;
+      --accent: #ea4335;
+      --bg: #ffffff;
+      --surface: #f5f5f5;
+      --text: #222222;
+      --text-secondary: #666666;
+      --border: #EAEAEA;
+      --shadow: rgba(0, 0, 0, 0.05);
+      --shadow-hover: rgba(0, 0, 0, 0.1);
+      
+      /* Spacing System */
+      --space-sm: 16px;
+      --space-md: 24px;
+      --space-lg: 32px;
+    }
+    
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    #canvas-container {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+    
+    #ui-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+    
+    #status-bar {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 8px 16px;
+      border-radius: 8px;
+      pointer-events: auto;
+      box-shadow: 0 4px 6px var(--shadow);
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--border);
+      color: var(--text);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      font-weight: 500;
+    }
+    
+    #status-bar.hidden {
+      opacity: 0;
+      transform: translateY(-20px);
+      pointer-events: none;
+    }
+    
+    #loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: opacity 0.5s;
+    }
+    
+    #loading-overlay.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(94, 43, 151, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    #loading-text {
+      margin-top: 16px;
+      font-size: 18px;
+      color: var(--text);
+      font-weight: 500;
+    }
+    
+    .loading-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+    
+    /* 隐藏UI元素的样式 */
+    .hidden-ui {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <div id="canvas-container"></div>
+  
+  <div id="ui-container">
+    <div id="status-bar">初始化中...</div>
+  </div>
+  
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <div id="loading-text">加载点云数据中...</div>
+    <div class="loading-subtitle">TAPIP3D 交互式查看器</div>
+  </div>
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/lines/LineSegmentsGeometry.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/lines/LineGeometry.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/lines/LineMaterial.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/lines/LineSegments2.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/lines/Line2.js"></script>
+  
+  <script>
+    class PointCloudVisualizer {
+      constructor() {
+        this.data = null;
+        this.config = {
+          baseFrameRate: 30 // 默认帧率
+        };
+        this.currentFrame = 0;
+        this.prevFrame = 0; // 添加变量跟踪上一帧的帧号
+        this.isPlaying = true;
+        this.playbackSpeed = 1;
+        this.lastFrameTime = 0;
+        this.defaultSettings = null;
+        this.shouldHideUI = false;
+        this.frameAccumulator = 0;
+        
+        // 添加视频索引，默认为1
+        this.videoIndex = 1;
+        
+        // 添加关键帧相关属性
+        this.keyframes = [];
+        this.keyframeInterval = 20; // 每隔20帧一个关键帧
+        this.keyframePointClouds = [];
+        this.keyframeTrajectoryMarkers = [];
+        
+        // 检查URL参数，确定自己对应哪个视频
+        const urlParams = new URLSearchParams(window.location.search);
+        const dataPath = urlParams.get('data') || '';
+        
+        // 如果URL中有videoIndex参数，直接使用
+        if (urlParams.has('videoIndex')) {
+          this.videoIndex = parseInt(urlParams.get('videoIndex'));
+        } 
+        // 否则尝试从数据路径判断
+        else if (dataPath) {
+          // 检查数据路径中是否包含数据集2的标志
+          if (dataPath.includes('davis') || dataPath.includes('data2')) {
+            this.videoIndex = 2;
+          }
+        }
+        
+        console.log(`初始化点云渲染器, 对应视频索引: ${this.videoIndex}`);
+        
+        this.ui = {
+          statusBar: document.getElementById('status-bar'),
+          loadingOverlay: document.getElementById('loading-overlay'),
+          loadingText: document.getElementById('loading-text')
+        };
+        
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.controls = null;
+        this.pointCloud = null;
+        this.trajectories = [];
+        this.cameraFrustum = null;
+        
+        // 检查URL参数
+        this.shouldHideUI = urlParams.get('hideUI') === 'true';
+        
+        // 添加消息监听
+        window.addEventListener('message', this.handleParentMessages.bind(this));
+        
+        this.isInitialized = false; // 添加初始化状态标志
+        
+        // 添加消息队列，用于存储初始化前收到的消息
+        this.pendingMessages = [];
+        
+        // 创建2D画布代替视频元素
+        this.canvas2D = document.createElement('canvas');
+        this.canvas2D.style.display = 'none'; // 默认隐藏画布
+        this.ctx2D = this.canvas2D.getContext('2d');
+        document.body.appendChild(this.canvas2D);
+        
+        // 用于动画控制的时间变量
+        this.animationFrameId = null;
+        this.targetFrameTime = 1000 / 30; // 默认30fps的时间间隔(毫秒)
+        
+        this.syncRatio = null; // 添加同步比例属性
+        
+        this.initThreeJS();
+        this.loadDefaultSettings().then(() => {
+          this.initEventListeners();
+          this.loadData();
+        });
+      }
+      
+      handleParentMessages(event) {
+        const message = event.data;
+        console.log('接收到消息:', message);
+        
+        // 如果还未初始化完成，将消息加入队列
+        if (!this.isInitialized) {
+          console.log('可视化器尚未初始化完成，消息已加入队列:', message);
+          this.pendingMessages.push(message);
+          return;
+        }
+        
+        this.processMessage(message);
+      }
+      
+      // 修改 processMessage 方法
+      processMessage(message) {
+        if (!message || !message.command) return;
+        
+        switch (message.command) {
+          // 移除 play, pause 和 setPlaybackRate 命令，只保留 updateSettings
+          case 'updateSettings':
+            if (message.settings) {
+              this.updateSettings(message.settings);
+            }
+            break;
+        }
+      }
+      
+      async loadDefaultSettings() {
+        try {
+          // Parse the URL to get dataset and video ID
+          const urlParams = new URLSearchParams(window.location.search);
+          const dataPath = urlParams.get('data') || '';
+          
+          // Default settings if we can't determine from URL
+          const defaultSettings = {
+            pointSize: 0.03,
+            pointOpacity: 1.0,
+            showTrajectory: true,
+            trajectoryLineWidth: 3,
+            trajectoryBallSize: 0.01,
+            trajectoryHistory: 15,
+            showCameraFrustum: true,
+            frustumSize: 0.2
+          };
+          
+          if (!dataPath) {
+            this.defaultSettings = defaultSettings;
+            return;
+          }
+          
+          // Try to extract dataset and videoId from the data path
+          // Expected format: demos/datasetname/videoid.bin
+          const pathParts = dataPath.split('/');
+          if (pathParts.length < 3) {
+            this.defaultSettings = defaultSettings;
+            return;
+          }
+          
+          const datasetName = pathParts[pathParts.length - 2];
+          let videoId = pathParts[pathParts.length - 1].replace('.bin', '');
+          
+          // Load settings from data.json
+          try {
+            const response = await fetch('./data.json');
+            if (!response.ok) {
+              this.defaultSettings = defaultSettings;
+              return;
+            }
+            
+            const settingsData = await response.json();
+            
+            // Check if this dataset and video exist
+            if (settingsData[datasetName] && settingsData[datasetName][videoId]) {
+              this.defaultSettings = settingsData[datasetName][videoId];
+            } else {
+              this.defaultSettings = defaultSettings;
+            }
+          } catch (error) {
+            console.error("加载设置时出错:", error);
+            this.defaultSettings = defaultSettings;
+          }
+        } catch (error) {
+          console.error("加载默认设置时出错:", error);
+          
+          // Fallback default settings
+          this.defaultSettings = {
+            pointSize: 0.03,
+            pointOpacity: 1.0,
+            showTrajectory: true,
+            trajectoryLineWidth: 3,
+            trajectoryBallSize: 0.01,
+            trajectoryHistory: 15,
+            showCameraFrustum: true,
+            frustumSize: 0.2
+          };
+        }
+      }
+      
+      initThreeJS() {
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0xf8f9fa);
+        
+        this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
+        this.camera.position.set(0, 0, this.config.cameraZ || 3);
+        
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('canvas-container').appendChild(this.renderer.domElement);
+        
+        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.05;
+        this.controls.target.set(0, 0, -1);
+        this.controls.minDistance = 0.1;
+        this.controls.maxDistance = 1000;
+        this.controls.update();
+        
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        this.scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(1, 1, 1);
+        this.scene.add(directionalLight);
+      }
+      
+      initEventListeners() {
+        window.addEventListener('resize', () => this.onWindowResize());
+      }
+      
+      async loadData() {
+        try {
+          this.ui.loadingText.textContent = "加载二进制数据...";
+          
+          // Get data path from URL parameters
+          const urlParams = new URLSearchParams(window.location.search);
+          const dataPath = urlParams.get('data') || 'data.bin'; // Default to data.bin if no parameter
+          
+          const response = await fetch(dataPath);
+          if (!response.ok) throw new Error(`加载 ${dataPath} 失败`);
+          
+          const buffer = await response.arrayBuffer();
+          const dataView = new DataView(buffer);
+          
+          const headerLen = dataView.getUint32(0, true);
+          
+          const headerText = new TextDecoder("utf-8").decode(buffer.slice(4, 4 + headerLen));
+          const header = JSON.parse(headerText);
+          
+          const compressedBlob = new Uint8Array(buffer, 4 + headerLen);
+          const decompressed = pako.inflate(compressedBlob).buffer;
+          
+          const arrays = {};
+          for (const key in header) {
+            if (key === "meta") continue;
+            
+            const meta = header[key];
+            const { dtype, shape, offset, length } = meta;
+            const slice = decompressed.slice(offset, offset + length);
+            
+            let typedArray;
+            switch (dtype) {
+              case "uint8": typedArray = new Uint8Array(slice); break;
+              case "uint16": typedArray = new Uint16Array(slice); break;
+              case "float32": typedArray = new Float32Array(slice); break;
+              case "float64": typedArray = new Float64Array(slice); break;
+              default: throw new Error(`未知的数据类型: ${dtype}`);
+            }
+            
+            arrays[key] = { data: typedArray, shape: shape };
+          }
+          
+          this.data = arrays;
+          this.config = header.meta;
+          
+          // 如果 totalFrames 未定义，则尝试通过 rgb_video 或 depths_rgb 数组自动设置
+          if (!this.config.totalFrames) {
+            if (this.data.rgb_video && this.data.rgb_video.shape) {
+              this.config.totalFrames = this.data.rgb_video.shape[0];
+              console.log("自动设置 totalFrames 为: " + this.config.totalFrames);
+            } else if (this.data.depths_rgb && this.data.depths_rgb.shape) {
+              this.config.totalFrames = this.data.depths_rgb.shape[0];
+              console.log("自动设置 totalFrames 为: " + this.config.totalFrames + "（基于 depths_rgb 数据）");
+            } else {
+              console.warn("无法自动设置 totalFrames");
+            }
+          }
+          
+          // 确保config.baseFrameRate存在，设置目标帧时间
+          if (!this.config.baseFrameRate) {
+            console.log('元数据中未指定基准帧率，使用默认值(30fps)');
+            this.config.baseFrameRate = 30;
+          } else {
+            console.log('读取到基准帧率:', this.config.baseFrameRate);
+          }
+          
+          // 根据帧率设置目标帧时间间隔
+          this.targetFrameTime = 1000 / this.config.baseFrameRate;
+          
+          this.initCameraWithCorrectFOV();
+          
+          this.ui.loadingText.textContent = "创建点云...";
+          
+          this.initPointCloud();
+          this.initTrajectories();
+          
+          // 准备第一帧的2D画布
+          if (this.data.rgb_video) {
+            this.updateCanvasFrame(0);
+          }
+          
+          setTimeout(() => {
+            this.ui.loadingOverlay.classList.add('fade-out');
+            this.ui.statusBar.classList.add('hidden');
+            
+            // 标记初始化完成
+            this.isInitialized = true;
+            console.log('可视化器初始化完成');
+            
+            // 处理所有待处理的消息
+            while (this.pendingMessages.length > 0) {
+              const message = this.pendingMessages.shift();
+              console.log('处理待处理消息:', message);
+              this.processMessage(message);
+            }
+            
+            // 通知父窗口已准备就绪
+            window.parent.postMessage({ 
+              type: 'viz_loaded',
+              status: 'ready',
+              totalFrames: this.config.totalFrames
+            }, '*');
+            
+            this.animate(performance.now());
+          }, 500);
+          
+        } catch (error) {
+          console.error("加载数据错误:", error);
+          this.ui.statusBar.textContent = `错误: ${error.message}`;
+          this.ui.loadingText.textContent = `加载数据错误: ${error.message}`;
+          
+          // 通知父窗口加载失败
+          window.parent.postMessage({ 
+            type: 'viz_loaded',
+            status: 'error',
+            error: error.message
+          }, '*');
+        }
+      }
+      
+      initPointCloud() {
+        const numPoints = this.config.resolution[0] * this.config.resolution[1];
+        const positions = new Float32Array(numPoints * 3);
+        const colors = new Float32Array(numPoints * 3);
+        
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        
+        // 从默认设置获取点大小和不透明度
+        const pointSize = this.defaultSettings.pointSize || 0.03;
+        const pointOpacity = this.defaultSettings.pointOpacity || 1.0;
+        
+        const material = new THREE.PointsMaterial({
+          size: pointSize,
+          vertexColors: true,
+          transparent: true,
+          opacity: pointOpacity,
+          sizeAttenuation: true
+        });
+        
+        this.pointCloud = new THREE.Points(geometry, material);
+        this.scene.add(this.pointCloud);
+        
+        this.updatePointCloud(0);
+      }
+      
+      initTrajectories() {
+        if (!this.data.trajectories) return;
+        
+        this.trajectories.forEach(trajectory => this.scene.remove(trajectory));
+        this.trajectories = [];
+        
+        const shape = this.data.trajectories.shape;
+        if (!shape || shape.length < 2) return;
+        
+        const [totalFrames, numTrajectories] = shape;
+        
+        const colors = this.createColorPalette(numTrajectories);
+        
+        const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
+        
+        // 从默认设置获取轨迹设置
+        const showTrajectory = this.defaultSettings.showTrajectory !== undefined ? 
+                              this.defaultSettings.showTrajectory : true;
+        const trajectoryBallSize = this.defaultSettings.trajectoryBallSize || 0.01;
+        const trajectoryLineWidth = this.defaultSettings.trajectoryLineWidth || 3;
+        const historyFramesSetting = this.defaultSettings.trajectoryHistory || 15;
+        
+        for (let i = 0; i < numTrajectories; i++) {
+          const trajectoryGroup = new THREE.Group();
+          
+          const ballSize = trajectoryBallSize;
+          const sphereGeometry = new THREE.SphereGeometry(ballSize, 16, 16);
+          const sphereMaterial = new THREE.MeshBasicMaterial({ 
+            color: colors[i],
+            transparent: true,
+            opacity: 0.8
+          });
+          const positionMarker = new THREE.Mesh(sphereGeometry, sphereMaterial);
+          trajectoryGroup.add(positionMarker);
+          
+          const historyFrames = Math.min(historyFramesSetting, this.config.totalFrames);
+          
+          const linePositions = new Float32Array(historyFrames * 3);
+          
+          const lineGeometry = new THREE.LineGeometry();
+          lineGeometry.setPositions(linePositions);
+          
+          const lineWidth = trajectoryLineWidth;
+          const lineMaterial = new THREE.LineMaterial({
+            color: colors[i],
+            linewidth: lineWidth,
+            resolution: resolution,
+            dashed: false,
+            transparent: true,
+            opacity: 0.8
+          });
+          
+          const trajectoryLine = new THREE.Line2(lineGeometry, lineMaterial);
+          trajectoryGroup.add(trajectoryLine);
+          
+          trajectoryGroup.userData = {
+            marker: positionMarker,
+            line: trajectoryLine,
+            color: colors[i]
+          };
+          
+          this.scene.add(trajectoryGroup);
+          this.trajectories.push(trajectoryGroup);
+        }
+        
+        const visible = showTrajectory;
+        this.trajectories.forEach(trajectory => trajectory.visible = visible);
+      }
+      
+      createColorPalette(count) {
+        const colors = [];
+        const hueStep = 360 / count;
+        
+        for (let i = 0; i < count; i++) {
+          const hue = (i * hueStep) % 360;
+          const color = new THREE.Color().setHSL(hue / 360, 0.8, 0.6);
+          colors.push(color);
+        }
+        
+        return colors;
+      }
+      
+      updatePointCloud(frameIndex) {
+        if (!this.data || !this.pointCloud) return;
+        
+        const rgbVideo = this.data.rgb_video;
+        const depthsRgb = this.data.depths_rgb;
+        const intrinsics = this.data.intrinsics;
+        const invExtrinsics = this.data.inv_extrinsics;
+        
+        const width = this.config.resolution[0];
+        const height = this.config.resolution[1];
+        const numPoints = width * height;
+        
+        // 创建过滤后点的新数组
+        const filteredPositions = [];
+        const filteredColors = [];
+        
+        const K = this.get3x3Matrix(intrinsics.data, intrinsics.shape, frameIndex);
+        const fx = K[0][0], fy = K[1][1], cx = K[0][2], cy = K[1][2];
+        
+        const invExtrMat = this.get4x4Matrix(invExtrinsics.data, invExtrinsics.shape, frameIndex);
+        const transform = this.getTransformElements(invExtrMat);
+        
+        const rgbFrame = this.getFrame(rgbVideo.data, rgbVideo.shape, frameIndex);
+        const depthFrame = this.getFrame(depthsRgb.data, depthsRgb.shape, frameIndex);
+        
+        // 从默认设置获取最大深度
+        const maxDepth = this.defaultSettings.maxDepth || 10.0;
+        
+        // 计算有效点数
+        let validPointCount = 0;
+        
+        for (let i = 0; i < numPoints; i++) {
+          const xPix = i % width;
+          const yPix = Math.floor(i / width);
+          
+          const d0 = depthFrame[i * 3];
+          const d1 = depthFrame[i * 3 + 1];
+          const depthEncoded = d0 | (d1 << 8);
+          const depthValue = (depthEncoded / ((1 << 16) - 1)) * 
+                           (this.config.depthRange[1] - this.config.depthRange[0]) + 
+                           this.config.depthRange[0];
+          
+          // 跳过零深度或深度大于maxDepth的点
+          if (depthValue === 0 || depthValue > maxDepth) {
+            continue;
+          }
+          
+          const X = ((xPix - cx) * depthValue) / fx;
+          const Y = ((yPix - cy) * depthValue) / fy;
+          const Z = depthValue;
+          
+          const tx = transform.m11 * X + transform.m12 * Y + transform.m13 * Z + transform.m14;
+          const ty = transform.m21 * X + transform.m22 * Y + transform.m23 * Z + transform.m24;
+          const tz = transform.m31 * X + transform.m32 * Y + transform.m33 * Z + transform.m34;
+          
+          // 将位置添加到过滤后的数组
+          filteredPositions.push(tx, -ty, -tz);
+          
+          // 将颜色添加到过滤后的数组
+          filteredColors.push(
+            rgbFrame[i * 3] / 255,
+            rgbFrame[i * 3 + 1] / 255,
+            rgbFrame[i * 3 + 2] / 255
+          );
+          
+          validPointCount++;
+        }
+        
+        // 删除旧的点云
+        if (this.pointCloud) {
+          this.scene.remove(this.pointCloud);
+          this.pointCloud.geometry.dispose();
+          this.pointCloud.material.dispose();
+        }
+        
+        // 创建仅包含有效点的新几何体
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(filteredPositions, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(filteredColors, 3));
+        
+        // 从默认设置获取点大小和不透明度
+        const pointSize = this.defaultSettings.pointSize || 0.03;
+        const pointOpacity = this.defaultSettings.pointOpacity || 1.0;
+        
+        const material = new THREE.PointsMaterial({
+          size: pointSize,
+          vertexColors: true,
+          transparent: true,
+          opacity: pointOpacity,
+          sizeAttenuation: true
+        });
+        
+        this.pointCloud = new THREE.Points(geometry, material);
+        this.scene.add(this.pointCloud);
+        
+        this.pointCloud.geometry.attributes.position.needsUpdate = true;
+        this.pointCloud.geometry.attributes.color.needsUpdate = true;
+        
+        // 检查是否应该将当前帧设为关键帧
+        this.handleKeyframes(frameIndex, filteredPositions, filteredColors);
+        
+        this.updateTrajectories(frameIndex);
+        
+        this.updateCameraFrustum(frameIndex);
+      }
+      
+      updateTrajectories(frameIndex) {
+        if (!this.data.trajectories || this.trajectories.length === 0) return;
+        
+        const trajectoryData = this.data.trajectories.data;
+        const [totalFrames, numTrajectories] = this.data.trajectories.shape;
+        const historyFramesSetting = this.defaultSettings.trajectoryHistory || 15;
+        const historyFrames = Math.min(historyFramesSetting, this.config.totalFrames);
+        
+        for (let i = 0; i < numTrajectories; i++) {
+          const trajectoryGroup = this.trajectories[i];
+          const { marker, line } = trajectoryGroup.userData;
+          
+          const currentPos = new THREE.Vector3();
+          const currentOffset = (frameIndex * numTrajectories + i) * 3;
+          
+          currentPos.x = trajectoryData[currentOffset];
+          currentPos.y = -trajectoryData[currentOffset + 1];
+          currentPos.z = -trajectoryData[currentOffset + 2];
+          
+          marker.position.copy(currentPos);
+          
+          const positions = [];
+          const historyToShow = Math.min(historyFrames, frameIndex + 1);
+          
+          for (let j = 0; j < historyToShow; j++) {
+            const historyFrame = Math.max(0, frameIndex - j);
+            const historyOffset = (historyFrame * numTrajectories + i) * 3;
+            
+            positions.push(
+              trajectoryData[historyOffset],
+              -trajectoryData[historyOffset + 1],
+              -trajectoryData[historyOffset + 2]
+            );
+          }
+          
+          for (let j = historyToShow; j < historyFrames; j++) {
+            positions.push(currentPos.x, currentPos.y, currentPos.z);
+          }
+          
+          line.geometry.setPositions(positions);
+          
+          line.visible = frameIndex > 0;
+        }
+      }
+      
+      getFrame(typedArray, shape, frameIndex) {
+        const [T, H, W, C] = shape;
+        const frameSize = H * W * C;
+        const offset = frameIndex * frameSize;
+        return typedArray.subarray(offset, offset + frameSize);
+      }
+      
+      get3x3Matrix(typedArray, shape, frameIndex) {
+        const frameSize = 9;
+        const offset = frameIndex * frameSize;
+        const K = [];
+        for (let i = 0; i < 3; i++) {
+          const row = [];
+          for (let j = 0; j < 3; j++) {
+            row.push(typedArray[offset + i * 3 + j]);
+          }
+          K.push(row);
+        }
+        return K;
+      }
+      
+      get4x4Matrix(typedArray, shape, frameIndex) {
+        const frameSize = 16;
+        const offset = frameIndex * frameSize;
+        const M = [];
+        for (let i = 0; i < 4; i++) {
+          const row = [];
+          for (let j = 0; j < 4; j++) {
+            row.push(typedArray[offset + i * 4 + j]);
+          }
+          M.push(row);
+        }
+        return M;
+      }
+      
+      getTransformElements(matrix) {
+        return {
+          m11: matrix[0][0], m12: matrix[0][1], m13: matrix[0][2], m14: matrix[0][3],
+          m21: matrix[1][0], m22: matrix[1][1], m23: matrix[1][2], m24: matrix[1][3],
+          m31: matrix[2][0], m32: matrix[2][1], m33: matrix[2][2], m34: matrix[2][3]
+        };
+      }
+      
+      onWindowResize() {
+        if (!this.camera || !this.renderer) return;
+        
+        const windowAspect = window.innerWidth / window.innerHeight;
+        this.camera.aspect = windowAspect;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        
+        if (this.trajectories && this.trajectories.length > 0) {
+          const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
+          this.trajectories.forEach(trajectory => {
+            const { line } = trajectory.userData;
+            if (line && line.material) {
+              line.material.resolution = resolution;
+            }
+          });
+        }
+        
+        if (this.cameraFrustum) {
+          const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
+          this.cameraFrustum.children.forEach(line => {
+            if (line.material && line.material.resolution) {
+              line.material.resolution.copy(resolution);
+            }
+          });
+        }
+      }
+      
+      animate(timestamp) {
+        // 每帧动画处理
+        if (this.controls) {
+          this.controls.update();
+        }
+        
+        // 处理帧率和播放逻辑 - 移除 isPlaying 检查，直接根据视频状态更新
+        if (this.data && this.config.totalFrames) {
+          // 查询父页面中 video 的当前时间（假设仅更新数据集1的点云）
+          var videoEl = parent.document.getElementById(`source-video-${this.videoIndex}`);
+          if (videoEl) {
+            let videoTime = videoEl.currentTime; // 单位：秒
+            // 计算视频播放进度比例，而不是依赖帧率
+            let videoProgress = videoEl.currentTime / videoEl.duration;
+            // 根据进度比例和总帧数计算当前帧
+            let newFrame = Math.floor(videoProgress * this.config.totalFrames);
+            newFrame = Math.max(0, Math.min(newFrame, this.config.totalFrames - 1));
+            if (newFrame !== this.currentFrame) { // 如果帧号不同才更新
+              // 检查是否是视频回放（当前帧号比上一帧小）
+              if (newFrame < this.prevFrame) {
+                console.log('检测到视频回放，重置关键帧');
+                // 清除场景中的关键帧对象并重置数组
+                // 使用已有的 clearAllKeyframes 方法，它会正确清理场景中的对象和重置数组
+                this.clearAllKeyframes();
+                // 关键帧会在播放过程中根据 keyframeInterval 自动重建
+                // 重置后，系统会从头开始，自动为符合条件 (frameIndex % keyframeInterval === 0) 的帧创建新的关键帧
+              }
+              
+              this.prevFrame = this.currentFrame; // 保存当前帧号作为下一次的上一帧
+              this.currentFrame = newFrame;
+              
+              if (this.currentFrame >= this.config.totalFrames - 1) {
+                // 不需要特殊处理播放结束，视频循环播放时会自动重新开始
+                this.updatePointCloud(this.currentFrame);
+                this.updateCanvasFrame(this.currentFrame);
+              } else {
+                this.updatePointCloud(this.currentFrame);
+                this.updateCanvasFrame(this.currentFrame);
+              }
+              window.parent.postMessage({
+                type: 'frame_update',
+                frame: this.currentFrame,
+                totalFrames: this.config.totalFrames,
+                progress: this.currentFrame / (this.config.totalFrames - 1)
+              }, '*');
+            }
+          }
+        }
+        
+        if (this.renderer && this.scene && this.camera) {
+          this.renderer.render(this.scene, this.camera);
+        }
+        
+        this.animationFrameId = requestAnimationFrame((newTimestamp) => this.animate(newTimestamp));
+      }
+      
+      // 新方法：更新2D画布上的帧
+      updateCanvasFrame(frameIndex) {
+        if (!this.data || !this.data.rgb_video || !this.ctx2D) return;
+        
+        const rgbVideo = this.data.rgb_video;
+        const [frames, height, width, channels] = rgbVideo.shape;
+        
+        // 调整画布大小以匹配视频尺寸
+        if (this.canvas2D.width !== width || this.canvas2D.height !== height) {
+          this.canvas2D.width = width;
+          this.canvas2D.height = height;
+        }
+        
+        // 获取当前帧的RGB数据
+        const frameData = this.getFrame(rgbVideo.data, rgbVideo.shape, frameIndex);
+        
+        // 创建ImageData对象
+        const imageData = this.ctx2D.createImageData(width, height);
+        const data = imageData.data;
+        
+        // 填充ImageData
+        for (let i = 0; i < width * height; i++) {
+          const rgbIndex = i * 3;
+          const imgDataIndex = i * 4;
+          
+          data[imgDataIndex] = frameData[rgbIndex];       // R
+          data[imgDataIndex + 1] = frameData[rgbIndex + 1]; // G
+          data[imgDataIndex + 2] = frameData[rgbIndex + 2]; // B
+          data[imgDataIndex + 3] = 255;                   // A (完全不透明)
+        }
+        
+        // 更新画布
+        this.ctx2D.putImageData(imageData, 0, 0);
+      }
+      
+      initCameraWithCorrectFOV() {
+        const fov = this.config.fov || 60;
+        
+        const windowAspect = window.innerWidth / window.innerHeight;
+        
+        this.camera = new THREE.PerspectiveCamera(
+          fov,
+          windowAspect,
+          0.1,
+          10000
+        );
+        
+        this.controls.object = this.camera;
+        this.controls.update();
+        
+        this.initCameraFrustum();
+      }
+      
+      initCameraFrustum() {
+        this.cameraFrustum = new THREE.Group();
+        
+        this.scene.add(this.cameraFrustum);
+        
+        this.initCameraFrustumGeometry();
+        
+        // 从默认设置获取摄像机截锥体可见性
+        const showCameraFrustum = this.defaultSettings.showCameraFrustum !== undefined ? 
+                                 this.defaultSettings.showCameraFrustum : true;
+        
+        this.cameraFrustum.visible = showCameraFrustum;
+      }
+      
+      initCameraFrustumGeometry() {
+        const fov = this.config.fov || 60;
+        const originalAspect = this.config.original_aspect_ratio || 1.33;
+        
+        // 从默认设置获取截锥体大小
+        const size = this.defaultSettings.frustumSize || 0.2;
+        
+        const halfHeight = Math.tan(THREE.MathUtils.degToRad(fov / 2)) * size;
+        const halfWidth = halfHeight * originalAspect;
+        
+        const vertices = [
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(-halfWidth, -halfHeight, size),
+          new THREE.Vector3(halfWidth, -halfHeight, size),
+          new THREE.Vector3(halfWidth, halfHeight, size),
+          new THREE.Vector3(-halfWidth, halfHeight, size)
+        ];
+        
+        const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
+        
+        const linePairs = [
+          [1, 2], [2, 3], [3, 4], [4, 1], 
+          [0, 1], [0, 2], [0, 3], [0, 4]
+        ];
+        
+        const colors = {
+          edge: new THREE.Color(0x3366ff),
+          ray: new THREE.Color(0x33cc66)
+        };
+        
+        linePairs.forEach((pair, index) => {
+          const positions = [
+            vertices[pair[0]].x, vertices[pair[0]].y, vertices[pair[0]].z,
+            vertices[pair[1]].x, vertices[pair[1]].y, vertices[pair[1]].z
+          ];
+          
+          const lineGeometry = new THREE.LineGeometry();
+          lineGeometry.setPositions(positions);
+          
+          let color = index < 4 ? colors.edge : colors.ray;
+          
+          const lineMaterial = new THREE.LineMaterial({
+            color: color,
+            linewidth: 2,
+            resolution: resolution,
+            dashed: false
+          });
+          
+          const line = new THREE.Line2(lineGeometry, lineMaterial);
+          this.cameraFrustum.add(line);
+        });
+      }
+      
+      updateCameraFrustum(frameIndex) {
+        if (!this.cameraFrustum || !this.data) return;
+        
+        const invExtrinsics = this.data.inv_extrinsics;
+        if (!invExtrinsics) return;
+        
+        const invExtrMat = this.get4x4Matrix(invExtrinsics.data, invExtrinsics.shape, frameIndex);
+        
+        const matrix = new THREE.Matrix4();
+        matrix.set(
+          invExtrMat[0][0], invExtrMat[0][1], invExtrMat[0][2], invExtrMat[0][3],
+          invExtrMat[1][0], invExtrMat[1][1], invExtrMat[1][2], invExtrMat[1][3],
+          invExtrMat[2][0], invExtrMat[2][1], invExtrMat[2][2], invExtrMat[2][3],
+          invExtrMat[3][0], invExtrMat[3][1], invExtrMat[3][2], invExtrMat[3][3]
+        );
+        
+        const position = new THREE.Vector3();
+        position.setFromMatrixPosition(matrix);
+        
+        const rotMatrix = new THREE.Matrix4().extractRotation(matrix);
+        
+        const coordinateCorrection = new THREE.Matrix4().makeRotationX(Math.PI);
+        
+        const finalRotation = new THREE.Matrix4().multiplyMatrices(coordinateCorrection, rotMatrix);
+        
+        const quaternion = new THREE.Quaternion();
+        quaternion.setFromRotationMatrix(finalRotation);
+        
+        position.y = -position.y;
+        position.z = -position.z;
+        
+        this.cameraFrustum.position.copy(position);
+        this.cameraFrustum.quaternion.copy(quaternion);
+        
+        // 从默认设置获取摄像机截锥体可见性
+        const showCameraFrustum = this.defaultSettings.showCameraFrustum !== undefined ? 
+                                 this.defaultSettings.showCameraFrustum : true;
+        
+        if (this.cameraFrustum.visible !== showCameraFrustum) {
+          this.cameraFrustum.visible = showCameraFrustum;
+        }
+        
+        const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
+        this.cameraFrustum.children.forEach(line => {
+          if (line.material && line.material.resolution) {
+            line.material.resolution.copy(resolution);
+          }
+        });
+      }
+      
+      // 添加新方法 - 处理关键帧
+      handleKeyframes(frameIndex, positions, colors) {
+        console.log(frameIndex)
+        // 首先检查关键帧功能是否启用
+        const showKeyframes = this.defaultSettings && this.defaultSettings.showKeyframes !== undefined ? 
+                                this.defaultSettings.showKeyframes : true;
+        
+        // 如果关键帧功能关闭，则清除所有现有关键帧并直接返回
+        if (!showKeyframes) {
+          this.clearAllKeyframes();
+          return;
+        }
+        
+        // 如果当前帧是关键帧(每隔 keyframeInterval 帧)
+        if (frameIndex % this.keyframeInterval === 1) {
+          // 首先移除旧的关键帧点云
+          this.clearOldKeyframes();
+          
+          // 记录这是一个关键帧
+          this.keyframes.push(frameIndex);
+          
+          // 获取关键帧透明度设置
+          const keyframeOpacity = this.defaultSettings.keyframeOpacity !== undefined ? 
+                                 this.defaultSettings.keyframeOpacity : 0.5;
+          
+          // 为关键帧创建点云副本
+          const keyframeGeometry = new THREE.BufferGeometry();
+          keyframeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+          keyframeGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+          
+          const keyframeMaterial = new THREE.PointsMaterial({
+            size: this.defaultSettings.pointSize || 0.03,
+            vertexColors: true,
+            transparent: true,
+            opacity: keyframeOpacity, // 使用设置的透明度
+            sizeAttenuation: true
+          });
+          
+          const keyframePointCloud = new THREE.Points(keyframeGeometry, keyframeMaterial);
+          this.keyframePointClouds.push(keyframePointCloud);
+          this.scene.add(keyframePointCloud);
+          
+          // 创建关键帧轨迹标记
+          if (this.data.trajectories && this.trajectories.length > 0) {
+            const trajectoryMarkerGroup = new THREE.Group();
+            
+            const trajectoryData = this.data.trajectories.data;
+            const numTrajectories = this.data.trajectories.shape[1];
+            
+            for (let i = 0; i < numTrajectories; i++) {
+              const currentOffset = (frameIndex * numTrajectories + i) * 3;
+              
+              const keyPosition = new THREE.Vector3(
+                trajectoryData[currentOffset],
+                -trajectoryData[currentOffset + 1],
+                -trajectoryData[currentOffset + 2]
+              );
+              
+              // 使用原始轨迹的颜色
+              const color = this.trajectories[i].userData.color;
+              
+              // 创建半透明的关键帧轨迹点，使用设置的透明度
+              const ballSize = (this.defaultSettings.trajectoryBallSize || 0.01) * 0.8;
+              const sphereGeometry = new THREE.SphereGeometry(ballSize, 12, 12);
+              const sphereMaterial = new THREE.MeshBasicMaterial({ 
+                color: color,
+                transparent: true,
+                opacity: keyframeOpacity // 使用设置的透明度
+              });
+              
+              const marker = new THREE.Mesh(sphereGeometry, sphereMaterial);
+              marker.position.copy(keyPosition);
+              
+              trajectoryMarkerGroup.add(marker);
+            }
+            
+            this.keyframeTrajectoryMarkers.push(trajectoryMarkerGroup);
+            this.scene.add(trajectoryMarkerGroup);
+          }
+        }
+        
+        // 如果当前帧不是关键帧，确保保留已有的关键帧并更新它们的可见性
+        this.updateKeyframesVisibility(frameIndex);
+      }
+      
+      // 添加新方法 - 清除所有关键帧
+      clearAllKeyframes() {
+        // 移除所有关键帧点云
+        this.keyframePointClouds.forEach(cloud => {
+          if (cloud) {
+            this.scene.remove(cloud);
+            cloud.geometry.dispose();
+            cloud.material.dispose();
+          }
+        });
+        
+        // 移除所有关键帧轨迹标记
+        this.keyframeTrajectoryMarkers.forEach(marker => {
+          if (marker) {
+            this.scene.remove(marker);
+            marker.children.forEach(child => {
+              if (child.geometry) child.geometry.dispose();
+              if (child.material) child.material.dispose();
+            });
+          }
+        });
+        
+        // 清空数组
+        this.keyframePointClouds = [];
+        this.keyframeTrajectoryMarkers = [];
+        this.keyframes = [];
+      }
+      
+      // 添加新方法 - 清除旧的关键帧
+      clearOldKeyframes() {
+        // 保留最近的2个关键帧
+        const maxKeyframesToKeep = 100;
+        
+        while (this.keyframePointClouds.length > maxKeyframesToKeep) {
+          const oldKeyframeCloud = this.keyframePointClouds.shift();
+          if (oldKeyframeCloud) {
+            this.scene.remove(oldKeyframeCloud);
+            oldKeyframeCloud.geometry.dispose();
+            oldKeyframeCloud.material.dispose();
+          }
+          
+          const oldKeyframeMarker = this.keyframeTrajectoryMarkers.shift();
+          if (oldKeyframeMarker) {
+            this.scene.remove(oldKeyframeMarker);
+            oldKeyframeMarker.children.forEach(child => {
+              if (child.geometry) child.geometry.dispose();
+              if (child.material) child.material.dispose();
+            });
+          }
+          
+          // 同时从关键帧记录中删除
+          this.keyframes.shift();
+        }
+      }
+      
+      // 添加新方法 - 更新关键帧的可见性
+      updateKeyframesVisibility(currentFrame) {
+        // 只显示在当前帧之前的关键帧
+        for (let i = 0; i < this.keyframes.length; i++) {
+          const keyframeIndex = this.keyframes[i];
+          const isVisible = keyframeIndex < currentFrame;
+          
+          if (this.keyframePointClouds[i]) {
+            this.keyframePointClouds[i].visible = isVisible;
+          }
+          
+          if (this.keyframeTrajectoryMarkers[i]) {
+            this.keyframeTrajectoryMarkers[i].visible = isVisible;
+          }
+        }
+      }
+      
+      // 添加新方法处理设置更新
+      updateSettings(settings) {
+        console.log('更新设置:', settings);
+        
+        // 更新点云设置
+        if (settings.pointCloud) {
+          if (settings.pointCloud.size !== undefined && this.pointCloud) {
+            this.pointCloud.material.size = settings.pointCloud.size;
+            this.pointCloud.material.needsUpdate = true;
+          }
+          
+          if (settings.pointCloud.opacity !== undefined && this.pointCloud) {
+            this.pointCloud.material.opacity = settings.pointCloud.opacity;
+            this.pointCloud.material.needsUpdate = true;
+          }
+          
+          // 保存到默认设置以便重新加载点云时使用
+          if (!this.defaultSettings) this.defaultSettings = {};
+          this.defaultSettings.pointSize = settings.pointCloud.size || this.defaultSettings.pointSize;
+          this.defaultSettings.pointOpacity = settings.pointCloud.opacity || this.defaultSettings.pointOpacity;
+          this.defaultSettings.maxDepth = settings.pointCloud.maxDepth || this.defaultSettings.maxDepth;
+          
+          // 如果深度发生变化，需要重新加载点云
+          if (settings.pointCloud.maxDepth !== undefined) {
+            this.updatePointCloud(this.currentFrame);
+          }
+        }
+        
+        // 更新轨迹设置
+        if (settings.trajectory) {
+          // 更新轨迹显示状态
+          if (settings.trajectory.show !== undefined && this.trajectories) {
+            this.trajectories.forEach(trajectory => {
+              trajectory.visible = settings.trajectory.show;
+            });
+          }
+          
+          // 更新线宽
+          if (settings.trajectory.width !== undefined && this.trajectories) {
+            this.trajectories.forEach(trajectory => {
+              const lineMaterial = trajectory.userData.line.material;
+              if (lineMaterial) {
+                lineMaterial.linewidth = settings.trajectory.width;
+                lineMaterial.needsUpdate = true;
+              }
+            });
+          }
+          
+          // 更新标记大小
+          if (settings.trajectory.markerSize !== undefined && this.trajectories) {
+            this.defaultSettings.trajectoryBallSize = settings.trajectory.markerSize;
+            
+            this.trajectories.forEach(trajectory => {
+              const marker = trajectory.userData.marker;
+              if (marker) {
+                // 需要重新创建几何体来改变大小
+                marker.geometry.dispose();
+                marker.geometry = new THREE.SphereGeometry(settings.trajectory.markerSize, 16, 16);
+              }
+            });
+          }
+          
+          // 更新轨迹历史长度
+          if (settings.trajectory.history !== undefined) {
+            this.defaultSettings.trajectoryHistory = settings.trajectory.history;
+            // 更新当前帧的轨迹显示，使用新的历史长度
+            this.updatePointCloud(this.currentFrame);
+          }
+          
+          // 保存设置
+          if (!this.defaultSettings) this.defaultSettings = {};
+          this.defaultSettings.showTrajectory = settings.trajectory.show;
+          this.defaultSettings.trajectoryLineWidth = settings.trajectory.width;
+        }
+        
+        // 更新关键帧设置
+        if (settings.keyframes) {
+          // 更新关键帧显示状态
+          if (settings.keyframes.show !== undefined) {
+            // 保存关键帧显示设置
+            this.defaultSettings.showKeyframes = settings.keyframes.show;
+            
+            // 如果关闭关键帧显示，清除所有现有关键帧
+            if (!settings.keyframes.show) {
+              this.clearAllKeyframes();
+            } else {
+              // 如果开启关键帧显示，更新现有关键帧的可见性
+              this.keyframePointClouds.forEach(cloud => {
+                if (cloud) cloud.visible = true;
+              });
+              
+              this.keyframeTrajectoryMarkers.forEach(marker => {
+                if (marker) marker.visible = true;
+              });
+            }
+          }
+          
+          // 更新关键帧间隔
+          if (settings.keyframes.interval !== undefined) {
+            this.keyframeInterval = settings.keyframes.interval;
+            
+            // 如果间隔发生变化并且关键帧功能开启，清除所有旧关键帧
+            if (this.defaultSettings.showKeyframes !== false) {
+              this.clearAllKeyframes();
+              // 强制更新当前帧，使用新的间隔重新生成关键帧
+              this.updatePointCloud(this.currentFrame);
+            }
+          }
+          
+          // 更新关键帧透明度
+          if (settings.keyframes.opacity !== undefined) {
+            // 保存关键帧透明度设置
+            this.defaultSettings.keyframeOpacity = settings.keyframes.opacity;
+            
+            // 更新现有关键帧的透明度
+            this.keyframePointClouds.forEach(cloud => {
+              if (cloud && cloud.material) {
+                cloud.material.opacity = settings.keyframes.opacity;
+                cloud.material.needsUpdate = true;
+              }
+            });
+            
+            this.keyframeTrajectoryMarkers.forEach(markerGroup => {
+              if (markerGroup) {
+                markerGroup.children.forEach(marker => {
+                  if (marker.material) {
+                    marker.material.opacity = settings.keyframes.opacity;
+                    marker.material.needsUpdate = true;
+                  }
+                });
+              }
+            });
+          }
+        }
+        
+        // 更新相机设置
+        if (settings.camera) {
+          // 更新相机框显示状态
+          if (settings.camera.show !== undefined && this.cameraFrustum) {
+            this.cameraFrustum.visible = settings.camera.show;
+          }
+          
+          // 更新相机框大小
+          if (settings.camera.size !== undefined && this.cameraFrustum) {
+            this.defaultSettings.frustumSize = settings.camera.size;
+            this.updateCameraFrustumGeometry(settings.camera.size);
+          }
+        }
+        
+        // 更新播放设置
+        if (settings.playback) {
+          if (settings.playback.fps !== undefined) {
+            // 更新帧率并计算新的目标帧时间
+            this.config.baseFrameRate = settings.playback.fps;
+            this.targetFrameTime = 1000 / settings.playback.fps;
+            console.log(`更新帧率为: ${settings.playback.fps}fps, 目标帧时间: ${this.targetFrameTime.toFixed(2)}ms`);
+          }
+          
+          if (settings.playback.speed !== undefined) {
+            this.playbackSpeed = settings.playback.speed;
+            console.log(`更新播放速度为: ${settings.playback.speed}x`);
+          }
+        }
+      }
+      
+      // 添加方法更新相机框几何体
+      updateCameraFrustumGeometry(size) {
+        if (!this.cameraFrustum) return;
+        
+        // 清除现有子对象
+        while (this.cameraFrustum.children.length) {
+          const child = this.cameraFrustum.children[0];
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) child.material.dispose();
+          this.cameraFrustum.remove(child);
+        }
+        
+        // 重新创建相机框几何体
+        const fov = this.config.fov || 60;
+        const originalAspect = this.config.original_aspect_ratio || 1.33;
+        
+        const halfHeight = Math.tan(THREE.MathUtils.degToRad(fov / 2)) * size;
+        const halfWidth = halfHeight * originalAspect;
+        
+        const vertices = [
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(-halfWidth, -halfHeight, size),
+          new THREE.Vector3(halfWidth, -halfHeight, size),
+          new THREE.Vector3(halfWidth, halfHeight, size),
+          new THREE.Vector3(-halfWidth, halfHeight, size)
+        ];
+        
+        const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
+        
+        const linePairs = [
+          [1, 2], [2, 3], [3, 4], [4, 1], 
+          [0, 1], [0, 2], [0, 3], [0, 4]
+        ];
+        
+        const colors = {
+          edge: new THREE.Color(0x3366ff),
+          ray: new THREE.Color(0x33cc66)
+        };
+        
+        linePairs.forEach((pair, index) => {
+          const positions = [
+            vertices[pair[0]].x, vertices[pair[0]].y, vertices[pair[0]].z,
+            vertices[pair[1]].x, vertices[pair[1]].y, vertices[pair[1]].z
+          ];
+          
+          const lineGeometry = new THREE.LineGeometry();
+          lineGeometry.setPositions(positions);
+          
+          let color = index < 4 ? colors.edge : colors.ray;
+          
+          const lineMaterial = new THREE.LineMaterial({
+            color: color,
+            linewidth: 2,
+            resolution: resolution,
+            dashed: false
+          });
+          
+          const line = new THREE.Line2(lineGeometry, lineMaterial);
+          this.cameraFrustum.add(line);
+        });
+        
+        // 更新当前帧的相机位置
+        this.updateCameraFrustum(this.currentFrame);
+      }
+    }
+    
+    window.addEventListener('DOMContentLoaded', () => {
+      new PointCloudVisualizer();
+    });
+  </script>
+</body>
+</html> 

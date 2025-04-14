@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TAPIP3D: Tracking Any Point in Persistent 3D Geometry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      /* Color System */
+      --primary: #5E2B97;
+      --primary-light: #F2EAFB;
+      --text: #222222;
+      --text-light: #666666;
+      --bg: #FFFFFF;
+      --border: #EAEAEA;
+      --shadow: 0 2px 12px rgba(0,0,0,0.05);
+      --shadow-hover: 0 6px 20px rgba(0,0,0,0.1);
+      
+      /* Spacing System */
+      --space-sm: 16px;
+      --space-md: 24px;
+      --space-lg: 32px;
+      --space-xl: 40px;
+      --space-xxl: 60px;
+      
+      /* Typography */
+      --text-base: 16px;
+      --text-sm: 14px;
+      --text-lg: 18px;
+      
+      --radius: 6px;
+      --radius-lg: 12px;
+      --transition: all 0.2s ease;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      line-height: 1.6;
+      background-color: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 var(--space-lg);
+    }
+    
+    .content-width {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    section {
+      padding: var(--space-xxl) 0;
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.5s ease-out;
+    }
+    
+    section.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: var(--space-sm);
+      text-align: center;
+      margin-top: var(--space-lg);
+      background: linear-gradient(90deg, var(--primary), #8E44AD);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    
+    h2 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-bottom: var(--space-xl);
+      position: relative;
+      text-align: center;
+    }
+    
+    h2:after {
+      content: '';
+      position: absolute;
+      bottom: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), #8E44AD);
+      border-radius: 3px;
+    }
+    
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: var(--space-xl) 0 var(--space-md);
+      color: var(--primary);
+      text-align: center;
+    }
+    
+    p {
+      margin-bottom: var(--space-md);
+      font-size: var(--text-base);
+      text-align: center;
+    }
+    
+    /* Authors Section */
+    .authors-container {
+      margin: var(--space-xl) 0;
+      text-align: center;
+    }
+    
+    .authors-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px 24px;
+      margin-bottom: 12px;
+    }
+    
+    .author-block {
+      font-size: 17px;
+      line-height: 1.4;
+    }
+    
+    .author-block a {
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+    
+    .author-block a:hover {
+      color: var(--primary);
+    }
+    
+    /* Affiliations */
+    .affiliations {
+      margin: var(--space-md) 0 var(--space-xl);
+      text-align: center;
+      font-size: 15px;
+      color: var(--text-light);
+    }
+    
+    .affiliation-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px 20px;
+      margin-bottom: 8px;
+    }
+    
+    .equal-contrib {
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    
+    .conference {
+      background-color: var(--primary-light);
+      color: var(--primary);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 13px;
+      display: inline-block;
+      margin-bottom: var(--space-xl);
+    }
+    
+    /* Links */
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-xl);
+    }
+    
+    .link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 500;
+      font-size: var(--text-sm);
+      transition: var(--transition);
+    }
+    
+    .link-btn:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+    
+    .link-btn.primary {
+      background-color: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    
+    /* Content Blocks */
+    .abstract-container {
+      background-color: var(--primary-light);
+      padding: var(--space-lg);
+      border-radius: var(--radius);
+      margin-bottom: var(--space-xl);
+    }
+    
+    .abstract-container p {
+      text-align: left;
+      margin-bottom: var(--space-sm);
+    }
+    
+    /* Media Elements */
+    .teaser {
+      width: 100%;
+      border-radius: var(--radius);
+      margin: var(--space-xl) auto;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      display: block;
+    }
+    
+    .video-container {
+      position: relative;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+      border-radius: var(--radius);
+      margin: var(--space-xl) auto;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+    
+    .video-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    
+    /* Interactive Controls */
+    .controls-card {
+      background-color: var(--primary-light);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md);
+      margin: var(--space-xl) auto;
+      max-width: 600px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .controls-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--primary), #8E44AD);
+    }
+    
+    .controls-title {
+      font-weight: 600;
+      margin-bottom: var(--space-sm);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: var(--space-sm);
+    }
+    
+    .control-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: var(--space-sm);
+      background: rgba(255,255,255,0.7);
+      border-radius: var(--radius);
+      transition: var(--transition);
+    }
+    
+    .control-item:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-hover);
+    }
+    
+    .control-icon {
+      width: 40px;
+      height: 40px;
+      background-color: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    
+    .control-label {
+      font-size: var(--text-sm);
+      font-weight: 500;
+      text-align: center;
+    }
+    
+    /* Dataset Selector */
+    .dataset-selector {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+      margin: var(--space-md) auto;
+    }
+    
+    /* Remove margin from demo-selector when inside dataset-selector */
+    .dataset-selector .demo-selector {
+      margin-top: 0;
+      gap: 8px;
+      margin-bottom: 0;
+    }
+    
+    .dataset-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: var(--space-sm);
+    }
+    
+    .dataset-tab {
+      padding: 8px 16px;
+      border-radius: 20px;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-size: var(--text-sm);
+      font-weight: 500;
+      transition: var(--transition);
+    }
+    
+    .dataset-tab.active {
+      background-color: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    
+    .dataset-tab:hover:not(.active) {
+      border-color: var(--primary);
+    }
+    
+    .dataset-preview {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: var(--space-sm);
+      margin-bottom: var(--space-lg);
+    }
+    
+    .dataset-preview-item {
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      transition: var(--transition);
+      aspect-ratio: 16/9;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+    
+    .dataset-preview-item:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-hover);
+    }
+    
+    .dataset-preview-item.active {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-light);
+    }
+    
+    .dataset-preview-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .dataset-name {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 6px;
+      font-size: 12px;
+      text-align: center;
+    }
+    
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: var(--space-xl) auto;
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    
+    th, td {
+      padding: var(--space-sm);
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    th {
+      font-weight: 600;
+      background-color: var(--primary-light);
+      color: var(--primary);
+    }
+    
+    tr:hover {
+      background-color: #FAFAFA;
+    }
+    
+    .highlight {
+      background-color: var(--primary-light);
+      font-weight: 500;
+    }
+    
+    /* Footer */
+    footer {
+      padding: var(--space-xxl) 0;
+      text-align: center;
+      color: var(--text-light);
+      font-size: var(--text-sm);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      :root {
+        --space-xxl: 48px;
+        --space-xl: 28px;
+      }
+      
+      .container {
+        padding: 0 var(--space-md);
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+      
+      h2 {
+        font-size: 1.5rem;
+      }
+      
+      .comparison-viewer {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+      }
+      
+      .authors-row {
+        gap: 8px 16px;
+      }
+      
+      .controls-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    .comparison-item iframe,
+    .single-viewer iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    
+    #ourViewerContainer,
+    #baselineViewerContainer {
+      width: 100%;
+      height: 450px;
+    }
+    
+    /* Floating animation */
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-8px);
+      }
+    }
+    
+    .floating {
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .inline-link {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px dashed var(--primary);
+        transition: var(--transition);
+    }
+
+    .inline-link:hover {
+        color: var(--primary);
+        border-bottom-style: solid;
+    }
+
+    /* Demo Selector */
+    .demo-selector {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-sm);
+      margin: var(--space-md) auto;
+    }
+
+    .demo-thumb {
+      flex: 0 0 auto;
+      width: 200px;
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      transition: var(--transition);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .demo-thumb:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .demo-thumb.active {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-light);
+    }
+
+    .demo-thumb img {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+    }
+
+    .demo-thumb-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 6px;
+      font-size: var(--text-sm);
+      text-align: center;
+    }
+
+    .demo-thumb video {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      display: block;
+    }
+    
+    .video-thumbnail {
+      width: 100%;
+      aspect-ratio: 16/9;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .video-thumbnail video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .video-placeholder {
+      width: 100%;
+      height: 100%;
+      background-color: #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-light);
+    }
+    
+    .loading-indicator {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255,255,255,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    
+    .loading-spinner {
+      width: 30px;
+      height: 30px;
+      border: 3px solid rgba(94, 43, 151, 0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    .demo-info {
+      margin-top: var(--space-sm);
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-light);
+    }
+
+    /* Viewer Container */
+    .viewer-container {
+      width: 100%;
+      border-radius: var(--radius);
+      margin: var(--space-md) auto;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+    }
+    
+    .viewer-container:hover {
+      box-shadow: var(--shadow-hover);
+    }
+    
+    .single-viewer {
+      height: 700px;
+    }
+    
+    .loading-frame {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--bg);
+      color: var(--text);
+      z-index: 5;
+    }
+    
+    .loading-frame .loading-spinner {
+      margin-bottom: 16px;
+      width: 40px;
+      height: 40px;
+    }
+    
+    .iframe-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="content-width">
+        <h1>TAPIP3D</h1>
+        <h2>Tracking Any Point in Persistent 3D Geometry</h2>
+        
+        <div class="authors-container" style="margin-bottom: 0;">
+          <div class="authors-row">
+            <div class="author-block"><sup>1,2,*</sup><a href="#">Bowei Zhang</a></div>
+            <div class="author-block"><sup>1,*</sup><a href="#">Lei Ke</a></div>
+            <div class="author-block"><sup>3</sup><a href="#">Adam W. Harley </a></div>
+            <div class="author-block"><sup>1</sup><a href="#">Katerina Fragkiadaki            </a></div>
+          </div>
+        </div>
+        <div class="affiliations" style="margin-top: 0;">
+          <div class="affiliation-row">
+            <div><sup>1</sup> Carnegie Mellon University</div>
+            <div><sup>2</sup> Peking University</div>
+            <div><sup>3</sup> Stanford University</div>
+          </div>
+          <div class="equal-contrib">* Equal Contribution</div>
+        </div>
+        
+        <div class="links">
+          <a href="#" class="link-btn">
+            <i class="fas fa-file-pdf"></i>
+            <span>Paper</span>
+          </a>
+          <a href="#" class="link-btn primary">
+            <i class="fas fa-eye"></i>
+            <span>Interactive</span>
+          </a>
+          <a href="#" class="link-btn">
+            <i class="fas fa-code"></i>
+            <span>Code</span>
+          </a>
+          <a href="#" class="link-btn">
+            <i class="fas fa-quote-right"></i>
+            <span>BibTeX</span>
+          </a>
+        </div>
+      </div>
+    </header>
+    
+    <section>
+      <div class="content-width">
+        <div class="teaser-container">
+          <img src="https://via.placeholder.com/1000x500/F5F5F5/757575?text=Method+Overview" alt="Method overview" class="teaser">
+          
+          <div style="text-align: center; margin-top: 20px;">
+            <p style="margin: 0; font-weight: 500; color: var(--text); display: inline-block; background-color: var(--primary-light); padding: 8px 20px; border-radius: var(--radius);">
+              <strong>TL;DR</strong>: Our method enables robust 3D point tracking by stabilizing features in world space and using 3D-aware attention.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section>
+      <div class="content-width">
+        <h2>Abstract</h2>
+        
+        <div class="abstract-container">
+          <p>
+            We introduce TAPIP3D, a novel approach for long-term 3D point tracking in monocular RGB and RGB-D videos. 
+            TAPIP3D represents videos as camera-stabilized spatio-temporal feature clouds, leveraging depth and camera motion information to lift 2D video features into a 3D world space where camera motion is effectively canceled. 
+            TAPIP3D iteratively refines multi-frame 3D motion estimates within this stabilized representation, enabling robust tracking over extended periods. 
+            To manage the inherent irregularities of 3D point distributions, we propose a Local Pair Attention mechanism. 
+            This 3D contextualization strategy effectively exploits spatial relationships in 3D, forming informative feature neighborhoods for precise 3D trajectory estimation. 
+            Our 3D-centric approach significantly outperforms existing 3D point tracking methods and even enhances 2D tracking accuracy compared to conventional 2D pixel trackers when accurate depth is available. 
+            It supports inference in both camera coordinates (i.e., unstabilized) and world coordinates, and our results demonstrate that compensating for camera motion improves tracking results. 
+            Our approach replaces the conventional 2D square correlation neighborhoods used in prior 2D and 3D trackers, leading to more robust and accurate results across various 3D point tracking benchmarks.
+          </p>
+        </div>
+      </div>
+    </section>
+    
+    <section>
+      <div class="content-width">
+        <h2>Interactive Demos</h2>
+        
+        <!-- Interactive Controls Card -->
+        <!-- <div class="controls-card">
+          <div class="controls-title">
+            <i class="fas fa-gamepad"></i> How to Interact with the Demos
+          </div>
+          <div class="controls-grid">
+            <div class="control-item">
+              <div class="control-icon floating" style="animation-delay: 0.1s;">
+                <i class="fas fa-mouse-pointer"></i>
+              </div>
+              <div class="control-label">Left Click + Drag to Rotate</div>
+            </div>
+            <div class="control-item">
+              <div class="control-icon floating" style="animation-delay: 0.3s;">
+                <i class="fas fa-arrows-alt"></i>
+              </div>
+              <div class="control-label">Right Click + Drag to Pan</div>
+            </div>
+            <div class="control-item">
+              <div class="control-icon floating" style="animation-delay: 0.5s;">
+                <i class="fas fa-search"></i>
+              </div>
+              <div class="control-label">Scroll to Zoom</div>
+            </div>
+          </div>
+        </div> -->
+        
+        <h3>With Sensor Depth</h3>
+        <p>Results on DexYCB dataset using accurate depth information</p>
+        
+        <div class="demo-selector" id="sensorDepthDemoSelector">
+          <!-- Will be populated by JavaScript -->
+        </div>
+        
+        <div class="viewer-container single-viewer" id="sensorDepthViewer">
+          <!-- Only create iframe when needed -->
+          <div class="loading-frame" id="sensorDepthViewerLoader">
+            <div class="loading-spinner"></div>
+            <p>Loading point cloud data...</p>
+          </div>
+        </div>
+        
+        <h3>With Monocular Videos</h3>
+        <p>For monocular videos, we combine our method with <a href="https://mega-sam.github.io/" class="inline-link">MegaSAM</a> to perform 3D point tracking in a stabilized space.</p>
+        <div class="dataset-selector">
+          <div class="dataset-tabs" id="datasetTabs">
+            <!-- Will be populated by JavaScript -->
+          </div>
+          
+          <div class="demo-selector" id="monocularVideoSelector">
+            <!-- Will be populated by JavaScript -->
+          </div>
+          
+          <div class="viewer-container single-viewer" id="monocularViewer">
+            <!-- Only create iframe when needed -->
+            <div class="loading-frame" id="monocularViewerLoader">
+              <div class="loading-spinner"></div>
+              <p>Loading point cloud data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section>
+      <div class="content-width">
+        <h2>Quantitative Results</h2>
+        <p>Performance comparison against state-of-the-art methods on dynamic scene benchmarks.</p>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Depth RMSE ↓</th>
+              <th>Pose Error ↓</th>
+              <th>Speed (fps) ↑</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Baseline A</td>
+              <td>0.45</td>
+              <td>0.12</td>
+              <td>5</td>
+            </tr>
+            <tr>
+              <td>Baseline B</td>
+              <td>0.38</td>
+              <td>0.09</td>
+              <td>3</td>
+            </tr>
+            <tr class="highlight">
+              <td>TAPIP3D (Ours)</td>
+              <td>0.28</td>
+              <td>0.07</td>
+              <td>15</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    
+    <section>
+      <div class="content-width">
+        <h2>Video Presentation</h2>
+        <div class="video-container">
+          <iframe src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allowfullscreen></iframe>
+        </div>
+      </div>
+    </section>
+    
+    <section>
+      <div class="content-width">
+        <h2>Citation</h2>
+        <div style="background-color: var(--primary-light); padding: var(--space-md); border-radius: var(--radius);">
+          <pre style="overflow-x: auto; white-space: pre-wrap; margin: 0; font-size: var(--text-sm);">
+@article{TODO,
+  title={TAPIP3D: Tracking Any Point in Persistent 3D Geometry},
+  author={Zhang, Bowei and Ke, Lei and Harley, Adam W and Fragkiadaki, Katerina},
+  journal={arXiv preprint arXiv:XXXX.XXXXX},
+  year={2024}
+}</pre>
+        </div>
+      </div>
+    </section>
+    
+    <footer>
+      <div class="content-width">
+        <p style="margin-top: var(--space-sm);">© 2025 TAPIP3D Authors</p>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async function() {
+      // Helper function to create and destroy iframes
+      const createIframe = (src, container) => {
+        const iframe = document.createElement('iframe');
+        iframe.src = src;
+        iframe.frameBorder = '0';
+        iframe.allowFullscreen = true;
+        
+        // Get the loader element in the container
+        const loader = container.querySelector('.loading-frame');
+        if (loader) {
+          loader.style.display = 'flex';
+        }
+        
+        // Create iframe container
+        const iframeContainer = document.createElement('div');
+        iframeContainer.className = 'iframe-container';
+        iframeContainer.appendChild(iframe);
+        
+        // Hide loader when iframe loads
+        iframe.onload = () => {
+          if (loader) {
+            loader.style.display = 'none';
+          }
+        };
+        
+        return iframeContainer;
+      };
+
+      const destroyIframe = (container) => {
+        while (container.firstChild) {
+          container.removeChild(container.firstChild);
+        }
+      };
+      
+      // Intersection Observer for section animations
+      const sections = document.querySelectorAll('section');
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      }, { threshold: 0.1 });
+      
+      sections.forEach(section => {
+        observer.observe(section);
+      });
+
+      // Load data from data.json
+      const loadAllData = async () => {
+        try {
+          const response = await fetch('./data.json');
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          // First section: DexYCB dataset (sensor depth)
+          await loadSensorDepthDemos(data);
+          
+          // Second section: Monocular videos (all other datasets)
+          await loadMonocularDemos(data);
+          
+        } catch (error) {
+          console.error('Error loading data:', error);
+          document.getElementById('sensorDepthDemoSelector').innerHTML = '<p>Error loading datasets. Please try again later.</p>';
+        }
+      };
+
+      // Load sensor depth demos (DexYCB dataset)
+      const loadSensorDepthDemos = async (data) => {
+        try {
+          if (!data.dexycb) {
+            throw new Error('DexYCB dataset not found in data.json');
+          }
+          
+          const demoSelector = document.getElementById('sensorDepthDemoSelector');
+          const viewerContainer = document.getElementById('sensorDepthViewer');
+          
+          // Clear existing content
+          demoSelector.innerHTML = '';
+          
+          // Process each video in the dexycb dataset
+          const videos = Object.keys(data.dexycb);
+          
+          videos.forEach((videoId, index) => {
+            const binPath = `demos/dexycb/${videoId}.bin`;
+            const mp4Path = `demos/dexycb/${videoId}.mp4`;
+            const viewerPath = `viz.html?data=${encodeURIComponent(binPath)}`;
+            
+            const thumb = document.createElement('div');
+            thumb.className = `demo-thumb ${index === 0 ? 'active' : ''}`;
+            thumb.setAttribute('data-video', videoId);
+            
+            thumb.innerHTML = `
+              <div class="video-thumbnail">
+                <video src="${mp4Path}" muted loop autoplay playsinline onloadeddata="this.parentNode.querySelector('.loading-indicator')?.remove()" onerror="this.style.display='none';this.parentNode.querySelector('.video-placeholder').style.display='flex'"></video>
+                <div class="loading-indicator"><div class="loading-spinner"></div></div>
+                <div class="video-placeholder" style="display:none;"><i class="fas fa-video-slash"></i></div>
+              </div>
+            `;
+            
+            thumb.addEventListener('click', function() {
+              demoSelector.querySelectorAll('.demo-thumb').forEach(t => t.classList.remove('active'));
+              this.classList.add('active');
+              
+              // Destroy existing iframe and create new one
+              destroyIframe(viewerContainer);
+              viewerContainer.appendChild(createIframe(viewerPath, viewerContainer));
+            });
+            
+            demoSelector.appendChild(thumb);
+          });
+          
+          // Set initial demo
+          if (videos.length > 0) {
+            const firstBinPath = `demos/dexycb/${videos[0]}.bin`;
+            const firstViewerPath = `viz.html?data=${encodeURIComponent(firstBinPath)}`;
+            viewerContainer.appendChild(createIframe(firstViewerPath, viewerContainer));
+          }
+        } catch (error) {
+          console.error('Error loading sensor depth demos:', error);
+          document.getElementById('sensorDepthDemoSelector').innerHTML = '<p>Error loading demos. Please try again later.</p>';
+        }
+      };
+
+      // Load monocular reconstruction demos with dataset selection
+      const loadMonocularDemos = async (data) => {
+        try {
+          // Filter out dexycb dataset since it's handled separately
+          const otherDatasets = Object.keys(data).filter(key => key !== 'dexycb');
+          
+          if (otherDatasets.length === 0) {
+            throw new Error('No monocular datasets found in data.json');
+          }
+          
+          const datasetTabs = document.getElementById('datasetTabs');
+          const videoSelector = document.getElementById('monocularVideoSelector');
+          const viewerContainer = document.getElementById('monocularViewer');
+          
+          // Clear existing content
+          datasetTabs.innerHTML = '';
+          videoSelector.innerHTML = '';
+          
+          // Format dataset names for display
+          const formatDatasetName = (name) => {
+            if (name === 'web_around30fps') return 'Web';
+            else if (name === 'davis') return 'DAVIS';
+            else if (name == 'drivetrack') return 'DriveTrack';
+            else if (name == 'iphone') return 'iPhone';
+            else if (name == 'dexycb') return 'DexYCB';
+            else if (name == 'pstudio') return 'PStudio';
+            else {
+              return name.charAt(0).toUpperCase() + name.slice(1);
+            }
+          };
+          
+          // Create dataset tabs
+          otherDatasets.forEach((datasetId, index) => {
+            const tab = document.createElement('div');
+            tab.className = `dataset-tab ${index === 0 ? 'active' : ''}`;
+            tab.textContent = formatDatasetName(datasetId);
+            tab.setAttribute('data-dataset', datasetId);
+            
+            tab.addEventListener('click', function() {
+              // Update active tab
+              datasetTabs.querySelectorAll('.dataset-tab').forEach(t => t.classList.remove('active'));
+              this.classList.add('active');
+              
+              // Update video selector for this dataset
+              updateVideoSelector(datasetId, data[datasetId], viewerContainer);
+            });
+            
+            datasetTabs.appendChild(tab);
+          });
+          
+          // Initialize with first dataset
+          if (otherDatasets.length > 0) {
+            const firstDataset = otherDatasets[0];
+            updateVideoSelector(firstDataset, data[firstDataset], viewerContainer);
+          }
+        } catch (error) {
+          console.error('Error loading monocular demos:', error);
+          document.getElementById('datasetTabs').innerHTML = '<p>Error loading datasets. Please try again later.</p>';
+        }
+      };
+      
+      // Update video selector for the selected dataset
+      const updateVideoSelector = (datasetId, dataset, viewerContainer) => {
+        const videoSelector = document.getElementById('monocularVideoSelector');
+        videoSelector.innerHTML = '';
+        
+        const videos = Object.keys(dataset);
+        
+        videos.forEach((videoId, index) => {
+          const binPath = `demos/${datasetId}/${videoId}.bin`;
+          const mp4Path = `demos/${datasetId}/${videoId}.mp4`;
+          const viewerPath = `viz.html?data=${encodeURIComponent(binPath)}`;
+          
+          const thumb = document.createElement('div');
+          thumb.className = `demo-thumb ${index === 0 ? 'active' : ''}`;
+          thumb.setAttribute('data-video', videoId);
+          
+          thumb.innerHTML = `
+            <div class="video-thumbnail">
+              <video src="${mp4Path}" muted loop autoplay playsinline onloadeddata="this.parentNode.querySelector('.loading-indicator')?.remove()" onerror="this.style.display='none';this.parentNode.querySelector('.video-placeholder').style.display='flex'"></video>
+              <div class="loading-indicator"><div class="loading-spinner"></div></div>
+              <div class="video-placeholder" style="display:none;"><i class="fas fa-video-slash"></i></div>
+            </div>
+          `;
+          
+          thumb.addEventListener('click', function() {
+            videoSelector.querySelectorAll('.demo-thumb').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Destroy existing iframe and create new one
+            destroyIframe(viewerContainer);
+            viewerContainer.appendChild(createIframe(viewerPath, viewerContainer));
+          });
+          
+          videoSelector.appendChild(thumb);
+        });
+        
+        // Set initial video
+        if (videos.length > 0) {
+          const firstBinPath = `demos/${datasetId}/${videos[0]}.bin`;
+          const firstViewerPath = `viz.html?data=${encodeURIComponent(firstBinPath)}`;
+          destroyIframe(viewerContainer);
+          viewerContainer.appendChild(createIframe(firstViewerPath, viewerContainer));
+        }
+      };
+
+      // Initialize all demo sections
+      await loadAllData();
+    });
+  </script>
+</body>
+</html>
