@@ -137,6 +137,52 @@
             "maxDepth": 100.0
         }
     },
+    "drivetrack": {
+        "178": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 5,
+            "trajectoryBallSize": 0.003,
+            "trajectoryHistory": 10,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2,
+            "maxDepth": 100.0
+        },
+        "15": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 5,
+            "trajectoryBallSize": 0.003,
+            "trajectoryHistory": 10,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2,
+            "maxDepth": 100.0
+        },
+        "1962": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 5,
+            "trajectoryBallSize": 0.003,
+            "trajectoryHistory": 10,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2,
+            "maxDepth": 100.0
+        },
+        "2290": {
+            "pointSize": 0.03,
+            "pointOpacity": 1.0,
+            "showTrajectory": true,
+            "trajectoryLineWidth": 5,
+            "trajectoryBallSize": 0.003,
+            "trajectoryHistory": 10,
+            "showCameraFrustum": true,
+            "frustumSize": 0.2,
+            "maxDepth": 100.0
+        }
+    },
     "pstudio": {
         "70": {
             "pointSize": 0.02,
