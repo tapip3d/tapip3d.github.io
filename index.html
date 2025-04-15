@@ -63,7 +63,7 @@
     }
     
     section {
-      padding: var(--space-xxl) 0;
+      padding: var(--space-md) 0;
       opacity: 0;
       transform: translateY(30px);
       transition: all 0.5s ease-out;
@@ -689,6 +689,15 @@
       height: 100%;
       position: relative;
     }
+
+    /* New style for the video teaser container */
+    .video-teaser-container {
+      border-radius: var(--radius);
+      overflow: hidden; /* Ensures video corners are also rounded */
+      margin: var(--space-md) auto var(--space-xl); /* Reduced top margin, keep bottom */
+      box-shadow: var(--shadow); /* Add subtle shadow like other elements */
+      border: 1px solid var(--border); /* Add subtle border */
+    }
   </style>
 </head>
 <body>
@@ -739,12 +748,14 @@
     <section>
         <!-- <div class="hero-body is-max-widescreen"> -->
           <!-- <center> -->
-          <video id="teaser" autoplay muted loop playsinline width="100%">
-            <source src="./demos/teaser_videos/video_demo1.mp4" type="video/mp4">
-          </video>
-          <video id="teaser" autoplay muted loop playsinline width="100%">
-            <source src="./demos/teaser_videos/video_demo2.mp4" type="video/mp4">
-          </video>
+          <div class="video-teaser-container">
+            <video id="teaser" autoplay muted loop playsinline width="100%">
+              <source src="./demos/teaser_videos/video_demo1.mp4" type="video/mp4">
+            </video>
+            <video id="teaser" autoplay muted loop playsinline width="100%">
+              <source src="./demos/teaser_videos/video_demo2.mp4" type="video/mp4">
+            </video>
+          </div>
           <div style="text-align: center; margin-top: 20px;">
             <p style="margin: 0; font-weight: 500; color: var(--text); display: inline-block; background-color: var(--primary-light); padding: 8px 20px; border-radius: var(--radius);">
               <strong>TL;DR</strong>: Our method TAPIP3D enables robust 3D point tracking for monocular/rgbd videos by representing them as <strong>camera-stabilized spatio-temporal 3D feature clouds</strong> in world space. Local Pair Attention (LPA) is proposed to iteratively refine multi-frame 3D motion estimates.
