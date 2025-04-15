@@ -62,9 +62,13 @@
     }
     .caption-group{
       display:flex;          /* 横向排列 */
-      justify-content:center;/* 整组居中，可按需调整 */
-      gap:380px;              /* 两段文字之间的距离，随意改 */
+      /* justify-content:center;整组居中，可按需调整 */
+      justify-content:space-between;
+      /* gap:380px;              两段文字间的距离，随意改 */
       margin-top:-2px; 
+      align-items:center;
+      padding:0 6vw;                 /* 左右预留一点呼吸空间，随屏宽缩放 */
+      flex-wrap:wrap;                /* 宽度不够时允许换行 */
     }
     .caption{
       /* margin-top:8px; */
