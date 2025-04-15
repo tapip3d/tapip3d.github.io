@@ -56,7 +56,26 @@
       margin: 0 auto;
       padding: 0 var(--space-lg);
     }
-    
+    .teaser-item{
+      flex:1;                 /* 平均分宽度 */
+      text-align:center;      /* 让 caption 水平居中 */
+    }
+    .caption-group{
+      display:flex;          /* 横向排列 */
+      justify-content:center;/* 整组居中，可按需调整 */
+      gap:380px;              /* 两段文字之间的距离，随意改 */
+      margin-top:-2px; 
+    }
+    .caption{
+      /* margin-top:8px; */
+      font-weight:600;
+      color:var(--text);
+      background:none !important;
+      padding:0 !important; 
+      /* padding:6px 16px; */
+      /* border-radius:var(--radius); */
+      /* display:inline-block; */
+    }
     .content-width {
       max-width: 1000px;
       margin: 0 auto;
@@ -748,7 +767,35 @@
     <section>
         <!-- <div class="hero-body is-max-widescreen"> -->
           <!-- <center> -->
-          <div class="video-teaser-container">
+            <div class="video-teaser-container">
+              <!-- 左侧：2D Monocular Video -->
+              <div class="teaser-item">
+                <video autoplay muted loop playsinline width="100%">
+                  <source src="./demos/teaser_videos/video_demo1.mp4" type="video/mp4">
+                </video>
+                
+              </div>
+          
+              <!-- 右侧：4D Reconstruction and Tracking -->
+              <div class="teaser-item">
+                <video autoplay muted loop playsinline width="100%">
+                  <source src="./demos/teaser_videos/video_demo2.mp4" type="video/mp4">
+                </video>
+              </div>
+              <div class="caption-group" style="margin-top:0px;">
+                <div class="caption">2D Monocular Video</div>
+                <div class="caption">3D Point Tracking at 3D Reconstruced World Space</div>
+              </div>
+            </div>
+            
+            <div style="text-align:center;margin-top:20px;">
+              <p style="margin:0;font-weight:500;color:var(--text);display:inline-block;
+                        background-color:var(--primary-light);padding:8px 20px;
+                        border-radius:var(--radius);">
+                <strong>TL;DR</strong>: Our method TAPIP3D enables robust 3D point tracking for monocular/RGB‑D videos by representing them as <strong>camera‑stabilized spatio‑temporal 3D feature clouds</strong> in world space. Local Pair Attention (LPA) is proposed to iteratively refine multi‑frame 3D motion estimates.
+              </p>
+            </div>
+          <!-- <div class="video-teaser-container">
             <video id="teaser" autoplay muted loop playsinline width="100%">
               <source src="./demos/teaser_videos/video_demo1.mp4" type="video/mp4">
             </video>
@@ -760,7 +807,7 @@
             <p style="margin: 0; font-weight: 500; color: var(--text); display: inline-block; background-color: var(--primary-light); padding: 8px 20px; border-radius: var(--radius);">
               <strong>TL;DR</strong>: Our method TAPIP3D enables robust 3D point tracking for monocular/rgbd videos by representing them as <strong>camera-stabilized spatio-temporal 3D feature clouds</strong> in world space. Local Pair Attention (LPA) is proposed to iteratively refine multi-frame 3D motion estimates.
             </p>
-          </div>
+          </div> -->
           <!-- </center> -->
       <!-- </div> -->
     </section>
@@ -983,45 +1030,6 @@
       </div>
     </section>
     
-
-    
-    <!-- <section>
-      <div class="content-width">
-        <h2>Quantitative Results</h2>
-        <p>Performance comparison against state-of-the-art methods on dynamic scene benchmarks.</p>
-        
-        <table>
-          <thead>
-            <tr>
-              <th>Method</th>
-              <th>Depth RMSE ↓</th>
-              <th>Pose Error ↓</th>
-              <th>Speed (fps) ↑</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Baseline A</td>
-              <td>0.45</td>
-              <td>0.12</td>
-              <td>5</td>
-            </tr>
-            <tr>
-              <td>Baseline B</td>
-              <td>0.38</td>
-              <td>0.09</td>
-              <td>3</td>
-            </tr>
-            <tr class="highlight">
-              <td>TAPIP3D (Ours)</td>
-              <td>0.28</td>
-              <td>0.07</td>
-              <td>15</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section> -->
     
     <!-- <section>
       <div class="content-width">
