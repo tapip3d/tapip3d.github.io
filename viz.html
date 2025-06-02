@@ -628,6 +628,21 @@
           <label for="frustum-size">Size</label>
           <input type="range" id="frustum-size" min="0.02" max="0.5" step="0.01" value="0.2">
         </div>
+        <div class="checkbox-container" style="margin-top: 8px;">
+          <label class="toggle-switch">
+            <input type="checkbox" id="auto-rotate-camera">
+            <span class="toggle-slider"></span>
+          </label>
+          <label for="auto-rotate-camera">Auto Rotate View</label>
+        </div>
+        <!-- New Frustum Image Toggle -->
+        <div class="checkbox-container" style="margin-top: 8px;">
+          <label class="toggle-switch">
+            <input type="checkbox" id="show-frustum-image"> <!-- Default unchecked -->
+            <span class="toggle-slider"></span>
+          </label>
+          <label for="show-frustum-image">Show Frame in Frustum</label>
+        </div>
       </div>
 
       <div class="settings-group">
@@ -666,6 +681,8 @@
         this.playbackSpeed = 1;
         this.lastFrameTime = 0;
         this.defaultSettings = null;
+        this.isAutoRotating = false;
+        this.showFrustumImage = false; // State for frustum image
         
         this.ui = {
           statusBar: document.getElementById('status-bar'),
@@ -686,7 +703,9 @@
           trajectoryHistory: document.getElementById('trajectory-history'),
           resetViewBtn: document.getElementById('reset-view-btn'),
           showCameraFrustum: document.getElementById('show-camera-frustum'),
-          frustumSize: document.getElementById('frustum-size')
+          frustumSize: document.getElementById('frustum-size'),
+          autoRotateCamera: document.getElementById('auto-rotate-camera'),
+          showFrustumImage: document.getElementById('show-frustum-image') // Added UI ref
         };
         
         this.scene = null;
@@ -696,6 +715,12 @@
         this.pointCloud = null;
         this.trajectories = [];
         this.cameraFrustum = null;
+        // Properties for lazy-loaded frustum image plane
+        this.frustumImagePlane = null;
+        this.frustumImageCanvas = null;
+        this.frustumImageTexture = null;
+        this.frustumImageMaterial = null;
+        this.frustumImageCtx = null;
         
         this.initThreeJS();
         this.loadDefaultSettings().then(() => {
@@ -836,6 +861,8 @@
         this.controls.target.set(0, 0, 0);
         this.controls.minDistance = 0.1;
         this.controls.maxDistance = 1000;
+        this.controls.autoRotateSpeed = 0.5;
+        this.controls.autoRotate = this.isAutoRotating;
         this.controls.update();
         
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -912,6 +939,39 @@
         
         // Make the settings panel draggable
         this.makeElementDraggable(this.ui.settingsPanel);
+
+        // Event listener for the auto-rotate toggle
+        if (this.ui.autoRotateCamera) {
+            this.ui.autoRotateCamera.checked = this.isAutoRotating;
+            this.ui.autoRotateCamera.addEventListener('change', () => {
+                this.isAutoRotating = this.ui.autoRotateCamera.checked;
+                if (this.controls) {
+                    this.controls.autoRotate = this.isAutoRotating;
+                }
+            });
+        }
+
+        // Event listener for the show frustum image toggle
+        if (this.ui.showFrustumImage) {
+            this.ui.showFrustumImage.checked = this.showFrustumImage; // Initialize UI state
+            this.ui.showFrustumImage.addEventListener('change', () => {
+                this.showFrustumImage = this.ui.showFrustumImage.checked;
+                if (this.showFrustumImage) {
+                    if (!this.frustumImagePlane) {
+                        // Lazy creation if it doesn't exist
+                        this.createFrustumImagePlane(); // Create and add to frustum group
+                    }
+                    if (this.frustumImagePlane) { // Check creation success
+                         this.frustumImagePlane.visible = true;
+                         this.updateFrustumImageTexture(this.currentFrame); // Update texture immediately
+                    }
+                } else {
+                    if (this.frustumImagePlane) {
+                        this.frustumImagePlane.visible = false; // Just hide, don't destroy
+                    }
+                }
+            });
+        }
       }
       
       makeElementDraggable(element) {
@@ -1459,13 +1519,30 @@
         
         // Set target slightly in front of camera
         this.controls.target.set(0, 0, -1);
+
+        // Reset auto-rotate state and UI to default (false)
+        this.isAutoRotating = false;
+        if (this.ui.autoRotateCamera) {
+            this.ui.autoRotateCamera.checked = this.isAutoRotating;
+        }
+        this.controls.autoRotate = this.isAutoRotating;
+
+        // Reset show frustum image state and UI
+        this.showFrustumImage = false;
+        if (this.ui.showFrustumImage) {
+            this.ui.showFrustumImage.checked = this.showFrustumImage;
+        }
+        if (this.frustumImagePlane) {
+            this.frustumImagePlane.visible = false; // Hide if exists
+        }
+        
         this.controls.update();
         
-        // Show status message
+        // this.camera.translateZ(0.5); // Reverted: Remove camera pullback
+
         this.ui.statusBar.textContent = "View reset";
         this.ui.statusBar.classList.remove('hidden');
         
-        // Hide status message after a few seconds
         setTimeout(() => {
           this.ui.statusBar.classList.add('hidden');
         }, 3000);
@@ -1507,6 +1584,8 @@
         this.controls.target.set(0, 0, -1);
         this.controls.update();
 
+        // this.camera.translateZ(0.5); // Reverted: Remove camera pullback
+
         this.playbackSpeed = this.config.baseFrameRate;
         
         document.getElementById('play-icon').style.display = 'none';
@@ -1531,6 +1610,11 @@
             this.currentFrame = (this.currentFrame + framesToAdvance) % this.config.totalFrames;
             this.lastFrameTime = now;
             this.updatePointCloud(this.currentFrame);
+            
+            // Conditionally update the frustum image texture if visible
+            if (this.showFrustumImage && this.frustumImagePlane) {
+                this.updateFrustumImageTexture(this.currentFrame);
+            }
           }
         }
         
@@ -1550,12 +1634,12 @@
       }
       
       initCameraWithCorrectFOV() {
-        const fov = this.config.fov || 60;
+        const fov= this.config.fov || 60; // Get original FOV or default
         
         const windowAspect = window.innerWidth / window.innerHeight;
         
         this.camera = new THREE.PerspectiveCamera(
-          fov,
+          fov, // Use the adjusted FOV
           windowAspect,
           0.1,
           10000
@@ -1569,15 +1653,27 @@
       
       initCameraFrustum() {
         this.cameraFrustum = new THREE.Group();
-        
         this.scene.add(this.cameraFrustum);
-        
         this.initCameraFrustumGeometry();
-        
-        // Get camera frustum visibility from default settings or UI
-        const showCameraFrustum = this.ui.showCameraFrustum ? this.ui.showCameraFrustum.checked : (this.defaultSettings ? this.defaultSettings.showCameraFrustum : false);
-        
-        this.cameraFrustum.visible = showCameraFrustum;
+
+        // If the state requires the image plane on load (e.g., saved state?), create it now
+        // Otherwise, it will be lazy-loaded by the event listener
+        if (this.showFrustumImage && !this.frustumImagePlane) {
+             this.createFrustumImagePlane();
+        }
+        // Ensure visibility matches state if plane exists
+        if (this.frustumImagePlane) {
+            this.frustumImagePlane.visible = this.showFrustumImage;
+        }
+
+        // Set frustum lines visibility
+        const showCameraFrustumLines = this.ui.showCameraFrustum ? this.ui.showCameraFrustum.checked : this.defaultSettings.showCameraFrustum;
+        this.cameraFrustum.children.forEach(child => {
+            // Only hide/show lines, not the potentially added image plane
+            if (child !== this.frustumImagePlane) { 
+                child.visible = showCameraFrustumLines;
+            }
+        });
       }
       
       initCameraFrustumGeometry() {
@@ -1631,6 +1727,100 @@
           const line = new THREE.Line2(lineGeometry, lineMaterial);
           this.cameraFrustum.add(line);
         });
+
+        // Update overall frustum visibility based on its own toggle
+        this.updateFrustumLinesVisibility(); 
+      }
+
+      // New function to specifically handle frustum lines visibility
+      updateFrustumLinesVisibility() {
+          if (!this.cameraFrustum) return;
+          const showCameraFrustumLines = this.ui.showCameraFrustum ? this.ui.showCameraFrustum.checked : this.defaultSettings.showCameraFrustum;
+          this.cameraFrustum.children.forEach(child => {
+              if (child !== this.frustumImagePlane) { // Don't affect image plane visibility here
+                  child.visible = showCameraFrustumLines;
+              }
+          });
+      }
+
+      // New function for lazy creation of the image plane
+      createFrustumImagePlane() {
+          if (this.frustumImagePlane || !this.config) return; // Already created or config not ready
+
+          // console.log("Creating frustum image plane..."); // Use console instead of logger
+
+          // Get current frustum size
+          const size = parseFloat(this.ui.frustumSize.value) || this.defaultSettings.frustumSize;
+          const fov = this.config.fov || 60;
+          const originalAspect = this.config.original_aspect_ratio || 1.33;
+          const halfHeight = Math.tan(THREE.MathUtils.degToRad(fov / 2)) * size;
+          const halfWidth = halfHeight * originalAspect;
+
+          // Create canvas for texture
+          // Use dimensions from rgb_video in data.bin for correct aspect ratio
+          let canvasW = 256, canvasH = 192; // Default/fallback
+          if (this.data && this.data.rgb_video && this.data.rgb_video.shape) {
+              // Get dimensions from the *resized* rgb_video stored in data.bin
+              canvasH = this.data.rgb_video.shape[1]; // Index 1 for H in THWC (after resize in visualizer.py)
+              canvasW = this.data.rgb_video.shape[2]; // Index 2 for W in THWC
+          }
+
+          this.frustumImageCanvas = document.createElement('canvas');
+          this.frustumImageCanvas.width = canvasW;
+          this.frustumImageCanvas.height = canvasH;
+          this.frustumImageCtx = this.frustumImageCanvas.getContext('2d');
+          this.frustumImageCtx.fillStyle = '#555'; // Placeholder background
+          this.frustumImageCtx.fillRect(0, 0, canvasW, canvasH);
+
+          this.frustumImageTexture = new THREE.CanvasTexture(this.frustumImageCanvas);
+          this.frustumImageTexture.flipY = false; // Prevent texture from being flipped vertically
+          this.frustumImageTexture.needsUpdate = true;
+
+          this.frustumImageMaterial = new THREE.MeshBasicMaterial({
+              map: this.frustumImageTexture,
+              side: THREE.DoubleSide, // Show on both sides
+              transparent: true,
+              opacity: 0.85 // Slightly transparent
+          });
+
+          const planeGeometry = new THREE.PlaneGeometry(halfWidth * 2, halfHeight * 2);
+          this.frustumImagePlane = new THREE.Mesh(planeGeometry, this.frustumImageMaterial);
+          
+          // Position the plane at the 'end' of the frustum lines
+          this.frustumImagePlane.position.z = size;
+          // Rotate the plane 180 degrees around Y so it faces the origin
+          // this.frustumImagePlane.rotation.y = Math.PI; // Commenting out rotation
+          
+          this.cameraFrustum.add(this.frustumImagePlane);
+      }
+
+      // New function to update the texture
+      updateFrustumImageTexture(frameIndex) {
+          if (!this.frustumImageCtx || !this.data || !this.data.rgb_video) return;
+
+          const rgbVideo = this.data.rgb_video;
+          const frameDataUint8 = this.getFrame(rgbVideo.data, rgbVideo.shape, frameIndex);
+          const canvasW = this.frustumImageCanvas.width;
+          const canvasH = this.frustumImageCanvas.height;
+
+          // Create ImageData and draw it to the canvas
+          // Assumes frameDataUint8 is flat RGB array for the canvas dimensions
+          if (frameDataUint8.length === canvasW * canvasH * 3) {
+              const imageData = this.frustumImageCtx.createImageData(canvasW, canvasH);
+              // Manually fill ImageData (faster for large data)
+              const data = imageData.data;
+              for (let i = 0, j = 0; i < data.length; i += 4, j += 3) {
+                  data[i] = frameDataUint8[j];     // R
+                  data[i + 1] = frameDataUint8[j + 1]; // G
+                  data[i + 2] = frameDataUint8[j + 2]; // B
+                  data[i + 3] = 255;                 // A (fully opaque)
+              }
+              this.frustumImageCtx.putImageData(imageData, 0, 0);
+              this.frustumImageTexture.needsUpdate = true;
+          } else {
+              // Use console.warn instead of logger.warn
+              console.warn("Frustum image texture update skipped: frame data size mismatch.");
+          }
       }
       
       updateCameraFrustum(frameIndex) {
@@ -1667,34 +1857,58 @@
         this.cameraFrustum.position.copy(position);
         this.cameraFrustum.quaternion.copy(quaternion);
         
-        // Get camera frustum visibility from default settings or UI
-        const showCameraFrustum = this.ui.showCameraFrustum ? this.ui.showCameraFrustum.checked : this.defaultSettings.showCameraFrustum;
-        
-        if (this.cameraFrustum.visible !== showCameraFrustum) {
-          this.cameraFrustum.visible = showCameraFrustum;
+        // Update frustum lines visibility based on its toggle
+        this.updateFrustumLinesVisibility();
+
+        // Update image plane visibility based on *its* toggle
+        if (this.frustumImagePlane) {
+            this.frustumImagePlane.visible = this.showFrustumImage;
         }
-        
-        const resolution = new THREE.Vector2(window.innerWidth, window.innerHeight);
-        this.cameraFrustum.children.forEach(line => {
-          if (line.material && line.material.resolution) {
-            line.material.resolution.copy(resolution);
-          }
-        });
+
+        // Update the texture if the plane is currently visible
+        if (this.showFrustumImage && this.frustumImagePlane) {
+            // This might be redundant if already called in animate(), 
+            // but ensures update if playback is paused.
+             this.updateFrustumImageTexture(frameIndex); 
+        }
       }
       
       updateFrustumDimensions() {
         if (!this.cameraFrustum) return;
         
-        while(this.cameraFrustum.children.length > 0) {
-          const child = this.cameraFrustum.children[0];
-          if (child.geometry) child.geometry.dispose();
-          if (child.material) child.material.dispose();
-          this.cameraFrustum.remove(child);
+        // Recreate frustum lines
+        // this.initCameraFrustumGeometry(); // This was the old name, use the new one
+        this.initCameraFrustumLines();
+        
+        // If the image plane exists, recreate it with new dimensions
+        if (this.frustumImagePlane) {
+             // Remove old plane first
+             this.cameraFrustum.remove(this.frustumImagePlane);
+             if (this.frustumImagePlane.geometry) this.frustumImagePlane.geometry.dispose();
+             // Material and texture can likely be reused if canvas size doesn't change
+             // but if aspect ratio changes, canvas/texture should be recreated too.
+             // For simplicity now, let's recreate fully.
+             if (this.frustumImageMaterial) this.frustumImageMaterial.dispose();
+             if (this.frustumImageTexture) this.frustumImageTexture.dispose();
+              // Note: Canvas element doesn't need explicit disposal, garbage collection handles it.
+             
+             this.frustumImagePlane = null;
+             this.frustumImageCanvas = null;
+             this.frustumImageTexture = null;
+             this.frustumImageMaterial = null;
+             this.frustumImageCtx = null;
+
+             // Recreate only if it should be visible
+             if (this.showFrustumImage) {
+                this.createFrustumImagePlane();
+                if (this.frustumImagePlane) { // Check creation success
+                    this.updateFrustumImageTexture(this.currentFrame);
+                    this.frustumImagePlane.visible = true;
+                }
+             }
         }
         
-        this.initCameraFrustumGeometry();
-        
-        this.updateCameraFrustum(this.currentFrame);
+        this.updateCameraFrustum(this.currentFrame); // Update position/rotation
       }
       
       resetSettings() {
@@ -1706,8 +1920,22 @@
         // Update visualizations
         this.updatePointCloudSettings();
         this.updateTrajectorySettings();
-        this.updateFrustumDimensions();
-        
+        // this.updateFrustumDimensions(); // Call separately or included in applyDefaultSettings?
+        // Let's reset the frustum image state specifically
+        this.showFrustumImage = false; // Assuming default is false
+        if (this.ui.showFrustumImage) {
+            this.ui.showFrustumImage.checked = this.showFrustumImage;
+        }
+        if (this.frustumImagePlane) {
+            this.frustumImagePlane.visible = false;
+        }
+        // Also reset frustum lines visibility
+        this.updateFrustumLinesVisibility(); 
+        // Frustum size slider is reset by applyDefaultSettings indirectly if we call it
+        // Let's rely on resetting individual controls or call applyDefaultSettings if that resets sliders too
+        this.applyDefaultSettings(); // Assuming this resets sliders
+        this.updateFrustumDimensions(); // Now update geometry based on reset slider values
+
         // Show a status message
         this.ui.statusBar.textContent = "Settings reset to defaults";
         this.ui.statusBar.classList.remove('hidden');
