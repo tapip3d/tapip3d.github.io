@@ -831,14 +831,7 @@
         
         <div class="abstract-container">
           <p>
-            We introduce TAPIP3D, a novel approach for long-term 3D point tracking in monocular RGB and RGB-D videos. 
-            TAPIP3D represents videos as camera-stabilized spatio-temporal feature clouds, leveraging depth and camera motion information to lift 2D video features into a 3D world space where camera motion is effectively canceled. 
-            TAPIP3D iteratively refines multi-frame 3D motion estimates within this stabilized representation, enabling robust tracking over extended periods. 
-            To manage the inherent irregularities of 3D point distributions, we propose a Local Pair Attention mechanism. 
-            This 3D contextualization strategy effectively exploits spatial relationships in 3D, forming informative feature neighborhoods for precise 3D trajectory estimation. 
-            Our 3D-centric approach significantly outperforms existing 3D point tracking methods and even enhances 2D tracking accuracy compared to conventional 2D pixel trackers when accurate depth is available. 
-            It supports inference in both camera coordinates (i.e., unstabilized) and world coordinates, and our results demonstrate that compensating for camera motion improves tracking results. 
-            Our approach replaces the conventional 2D square correlation neighborhoods used in prior 2D and 3D trackers, leading to more robust and accurate results across various 3D point tracking benchmarks.
+            We introduce TAPIP3D, a novel approach for long-term 3D point tracking in monocular RGB and RGB-D videos. TAPIP3D represents videos as camera-stabilized spatio-temporal feature clouds, leveraging depth and camera motion information to lift 2D video features into a 3D world space where camera movement is effectively canceled out. Within this stabilized 3D representation, TAPIP3D iteratively refines multi-frame motion estimates, enabling robust point tracking over long time horizons. To handle the irregular structure of 3D point distributions, we propose a 3D Neighborhood-to-Neighborhood (N2N) attention mechanism - a 3D-aware contextualization strategy that builds informative, spatially coherent feature neighborhoods to support precise trajectory estimation. Our 3D-centric formulation significantly improves performance over existing 3D point tracking methods and even surpasses state-of-the-art 2D pixel trackers in accuracy when reliable depth is available. The model supports inference in both camera-centric (unstabilized) and world-centric (stabilized) coordinates, with experiments showing that compensating for camera motion leads to substantial gains in tracking robustness. By replacing the conventional 2D square correlation windows used in prior 2D and 3D trackers with a spatially grounded 3D attention mechanism, TAPIP3D achieves strong and consistent results across multiple 3D point tracking benchmarks.
           </p>
         </div>
       </div>
